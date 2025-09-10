@@ -33,7 +33,7 @@ jobs:
           fi
           echo "PR title follows Conventional Commits format: $PR_TITLE"
 
-  release:
+  release-plz-pr:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     
@@ -46,18 +46,41 @@ jobs:
       - name: Setup mise
         uses: jdx/mise-action@v2
         
-      - name: Create release with release-plz
+      - name: Create release PR with release-plz
         run: |
-          echo "TODO: Implement release-plz integration"
+          echo "TODO: Implement release-plz integration for PR creation"
           echo "This step will:"
-          echo "1. Analyze conventional commits to determine version bump"
-          echo "2. Update Cargo.toml version"
-          echo "3. Generate changelog"
-          echo "4. Create GitHub release"
+          echo "1. Analyze conventional commits since last release"
+          echo "2. Determine appropriate version bump"
+          echo "3. Update Cargo.toml version in a new PR"
+          echo "4. Generate changelog for the PR"
+          echo "5. Create release PR for manual review and merge"
+
+  release-plz-release:
+    # TODO: Add condition to detect when a release PR is merged
+    # This is a placeholder - actual implementation needs to identify release PR merges
+    if: false  # Disabled until proper release PR detection is implemented
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+        
+      - name: Create GitHub release with release-plz
+        run: |
+          echo "TODO: Implement release-plz integration for release creation"
+          echo "This step will:"
+          echo "1. Create actual GitHub release with tag"
+          echo "2. Use generated changelog in release description"
           
       - name: Build release binaries
         run: |
-          echo "TODO: Implement cross-platform builds"
+          echo "TODO: Implement cross-platform build matrix"
           echo "This step will build binaries for:"
           echo "- macOS (latest)"
           echo "- Ubuntu (latest)" 
