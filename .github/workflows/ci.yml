@@ -61,6 +61,9 @@ jobs:
   release-plz-pr:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
 
     steps:
       - name: Checkout code
@@ -72,20 +75,22 @@ jobs:
         uses: ./.github/actions/setup-environment
 
       - name: Create release PR with release-plz
-        run: |
-          echo "TODO: Implement release-plz integration for PR creation"
-          echo "This step will:"
-          echo "1. Analyze conventional commits since last release"
-          echo "2. Determine appropriate version bump"
-          echo "3. Update Cargo.toml version in a new PR"
-          echo "4. Generate changelog for the PR"
-          echo "5. Create release PR for manual review and merge"
+        uses: MarcoIeni/release-plz-action@e1b96e8cfeff90d86d37c0e8ba23bf0d84f56ed9 # v0.5
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   release-plz-release:
-    # TODO: Add condition to detect when a release PR is merged
-    # This is a placeholder - actual implementation needs to identify release PR merges
-    if: false # Disabled until proper release PR detection is implemented
+    # Only run when a release PR is merged to main
+    # release-plz creates releases with specific commit message patterns
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -97,44 +102,64 @@ jobs:
         uses: ./.github/actions/setup-environment
 
       - name: Create GitHub release with release-plz
+        uses: MarcoIeni/release-plz-action@e1b96e8cfeff90d86d37c0e8ba23bf0d84f56ed9 # v0.5
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Build and upload cross-platform binaries when a release is created
+  build-and-upload-binaries:
+    # Only run when a tag is created (after release-plz creates the release)
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            binary-suffix: ""
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            binary-suffix: ".exe"
+          - os: macos-latest
+            target: x86_64-apple-darwin
+            binary-suffix: ""
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
+
+      - name: Build release binary
+        run: mise run build
+
+      - name: Prepare binary for upload
+        shell: bash
         run: |
-          echo "TODO: Implement release-plz integration for release creation"
-          echo "This step will:"
-          echo "1. Create actual GitHub release with tag"
-          echo "2. Use generated changelog in release description"
+          # Create properly named binary with platform information
+          binary_name="mcp-serve${{ matrix.binary-suffix }}"
+          platform_name="${{ matrix.target }}"
 
-      - name: Build release binaries
-        run: |
-          # Build for multiple targets using cross
-          targets=(
-            "x86_64-unknown-linux-gnu"
-            "x86_64-pc-windows-msvc"
-            "x86_64-apple-darwin"
-            "aarch64-apple-darwin"
-          )
+          # Copy built binary to release directory with platform-specific naming
+          mkdir -p release
+          if [ -f "target/release/$binary_name" ]; then
+            cp "target/release/$binary_name" "release/mcp-serve-$platform_name${{ matrix.binary-suffix }}"
+            echo "Prepared binary: release/mcp-serve-$platform_name${{ matrix.binary-suffix }}"
+            ls -la release/
+          else
+            echo "Binary not found at target/release/$binary_name"
+            echo "Contents of target/release:"
+            ls -la target/release/ || echo "target/release directory not found"
+            exit 1
+          fi
 
-          for target in "${targets[@]}"; do
-            echo "Building for $target..."
-            cross build --release --target "$target"
-
-            # Create properly named binaries
-            binary_name="mcp-serve"
-            case "$target" in
-              *windows*)
-                binary_name="${binary_name}.exe"
-                ;;
-            esac
-
-            # Copy to release directory with platform-specific naming
-            mkdir -p "release"
-            platform_name=$(echo "$target" | sed 's/unknown-//' | sed 's/pc-//')
-            cp "target/$target/release/$binary_name" "release/mcp-serve-$platform_name"
-          done
-
-          # List built binaries
-          echo "Built binaries:"
-          ls -la release/
-
-      - name: Upload binaries to release
-        run: |
-          echo "TODO: Upload compiled binaries to the GitHub release"
+      - name: Upload binary to release
+        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2
+        with:
+          files: release/mcp-serve-*
