@@ -1,19 +1,17 @@
 use clap::Parser;
+use std::path::PathBuf;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
-    /// Enable tool functionality
-    #[arg(long)]
-    tool: bool,
+    /// Directory to discover tools from
+    #[arg(long, default_value = ".")]
+    tools: PathBuf,
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    if cli.tool {
-        println!("Tool functionality working");
-    } else {
-        println!("mcp-serve wireframe - use --help for options");
-    }
+    println!("Discovering tools from directory: {}", cli.tools.display());
+    println!("Tools functionality working");
 }
