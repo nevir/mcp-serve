@@ -16,6 +16,18 @@ jobs:
 
       - name: Setup mise
         uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: false # Disable caching to avoid Rust toolchain conflicts
+
+      - name: Install and verify Rust toolchain
+        run: |
+          # Ensure Rust toolchain is properly installed before running tests
+          mise install rust
+          # Install required components explicitly
+          mise exec rust -- rustup component add rustfmt clippy
+          # Verify installation
+          mise exec rust -- rustc --version
+          mise exec rust -- rustfmt --version
 
       - name: Run tests
         run: mise run test
@@ -68,6 +80,8 @@ jobs:
 
       - name: Setup mise
         uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: false # Disable caching to avoid Rust toolchain conflicts
 
       - name: Create release PR with release-plz
         run: |
@@ -93,6 +107,8 @@ jobs:
 
       - name: Setup mise
         uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+        with:
+          cache: false # Disable caching to avoid Rust toolchain conflicts
 
       - name: Create GitHub release with release-plz
         run: |
