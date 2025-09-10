@@ -45,7 +45,7 @@ IMPORTANT information to keep in mind when using tools.
   - If labeled `task`, or appears to be implementation work → Read and follow `.agents/commands/work.md`
   - For issues that don't clearly fit the workflow: Ask the user what type of work they want to perform on this issue
 
-- **Finding sub-issues**: 
+- **Finding sub-issues**:
   - Use GitHub search with `parent-issue:owner/repo#issue-number` to find all sub-issues of a parent issue
   - Example: `parent-issue:nevir/mcp-serve#68` finds all sub-issues of feature #68
   - This is more efficient than using `list_sub_issues` when the response would be too large
