@@ -89,10 +89,13 @@ jobs:
   publish-release:
     # Only run when a release PR is merged to main
     # release-plz creates release PRs with 'chore(release):' commit messages
+    # Temporarily also run on PR branch pushes for testing
     if: >
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      startsWith(github.event.head_commit.message, 'chore(release):')
+      (github.event_name == 'push' &&
+       github.ref == 'refs/heads/main' &&
+       startsWith(github.event.head_commit.message, 'chore(release):')) ||
+      (github.event_name == 'push' &&
+       github.ref == 'refs/heads/17-ci-cd-pipeline/27-upload-release-binaries-to-github-releases')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -115,57 +118,7 @@ jobs:
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Build release binaries
-        run: |
-          # Install cross if not available
-          mise install cross
-          
-          # Build for multiple targets using cross
-          targets=(
-            "x86_64-unknown-linux-gnu"
-            "x86_64-pc-windows-msvc"
-            "x86_64-apple-darwin"
-            "aarch64-apple-darwin"
-          )
-
-          # Create release directory
-          mkdir -p "release"
-          
-          for target in "${targets[@]}"; do
-            echo "Building for $target..."
-            mise exec cross -- cross build --release --target "$target"
-
-            # Determine binary name and extension
-            binary_name="mcp-serve"
-            if [[ "$target" == *windows* ]]; then
-              binary_name="${binary_name}.exe"
-            fi
-
-            # Create platform-specific binary name for release
-            platform_binary=""
-            case "$target" in
-              "x86_64-unknown-linux-gnu")
-                platform_binary="mcp-serve-linux-x86_64"
-                ;;
-              "x86_64-pc-windows-msvc")
-                platform_binary="mcp-serve-windows-x86_64.exe"
-                ;;
-              "x86_64-apple-darwin")
-                platform_binary="mcp-serve-macos-x86_64"
-                ;;
-              "aarch64-apple-darwin")
-                platform_binary="mcp-serve-macos-aarch64"
-                ;;
-            esac
-
-            # Copy binary to release directory
-            cp "target/$target/release/$binary_name" "release/$platform_binary"
-            echo "✓ Built: $platform_binary"
-          done
-
-          # List all built binaries
-          echo ""
-          echo "Built release binaries:"
-          ls -la release/
+        run: mise run build-release
 
       - name: Upload binaries to release
         run: |
@@ -174,27 +127,27 @@ jobs:
             echo "❌ No binaries found in release/ directory"
             exit 1
           fi
-          
+
           # Get the latest release tag (created by release-plz)
           RELEASE_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null)
           if [ -z "$RELEASE_TAG" ] || [ "$RELEASE_TAG" = "null" ]; then
             echo "❌ No release found. Release creation may have failed."
             exit 1
           fi
-          
+
           echo "Found release tag: $RELEASE_TAG"
           echo "Uploading binaries to release..."
-          
+
           # Track upload status
           upload_count=0
           failed_uploads=()
-          
+
           # Upload all binaries to the release
           for binary in release/*; do
             if [[ -f "$binary" ]]; then
               binary_name=$(basename "$binary")
               echo "Uploading $binary_name..."
-              
+
               if gh release upload "$RELEASE_TAG" "$binary" --clobber 2>/dev/null; then
                 echo "✅ Successfully uploaded $binary_name"
                 upload_count=$((upload_count + 1))
@@ -204,12 +157,12 @@ jobs:
               fi
             fi
           done
-          
+
           # Report results
           echo ""
           echo "Upload summary:"
           echo "  Successfully uploaded: $upload_count binaries"
-          
+
           if [ ${#failed_uploads[@]} -gt 0 ]; then
             echo "  Failed uploads: ${#failed_uploads[@]}"
             printf '    - %s\n' "${failed_uploads[@]}"

@@ -24,3 +24,47 @@ run = "cargo test"
 [tasks.test]
 description = "Run all tests"
 depends = ["test-style", "test-unit"]
+
+[tasks.build-release]
+description = "Build cross-platform release binaries"
+run = '''
+# Create release directory
+mkdir -p release
+
+# Build for multiple targets using cross
+targets=(
+  "x86_64-unknown-linux-gnu"
+  "x86_64-pc-windows-msvc"
+  "x86_64-apple-darwin"
+  "aarch64-apple-darwin"
+)
+
+for target in "${targets[@]}"; do
+  echo "Building for $target..."
+  cross build --release --target "$target"
+  
+  # Determine binary name and extension
+  binary_name="mcp-serve"
+  if [[ "$target" == *windows* ]]; then
+    binary_name="${binary_name}.exe"
+  fi
+  
+  # Create platform-specific binary name from target
+  platform_binary="mcp-serve-$target"
+  # Clean up the name for readability
+  platform_binary=$(echo "$platform_binary" | sed 's/unknown-//' | sed 's/pc-//' | sed 's/apple-darwin/macos/' | sed 's/linux-gnu/linux/')
+  # Add .exe extension for Windows
+  if [[ "$target" == *windows* ]]; then
+    platform_binary="${platform_binary}.exe"
+  fi
+  
+  # Copy binary to release directory
+  cp "target/$target/release/$binary_name" "release/$platform_binary"
+  echo "✓ Built: $platform_binary"
+done
+
+# List all built binaries
+echo ""
+echo "Built release binaries:"
+ls -la release/
+'''
