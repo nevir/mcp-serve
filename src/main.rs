@@ -12,6 +12,9 @@ struct Cli {
 fn main() {
     let cli = Cli::parse();
 
-    println!("Discovering tools from directory: {}", cli.tools_dir.display());
+    println!(
+        "Discovering tools from directory: {}",
+        cli.tools_dir.display()
+    );
     println!("Tools functionality working");
 }
