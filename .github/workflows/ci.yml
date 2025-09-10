@@ -24,7 +24,6 @@ jobs:
         run: |
           # Extract PR title and check if it follows Conventional Commits format
           PR_TITLE="${{ github.event.pull_request.title }}"
-          
           # Regex pattern for Conventional Commits:
           # - Required type: feat|fix|docs|style|refactor|test|chore
           # - Optional scope: (anything except !)
