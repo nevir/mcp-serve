@@ -123,9 +123,6 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-environment
 
-      - name: Install cross
-        run: cargo install cross --git https://github.com/cross-rs/cross
-
       - name: Build release binaries
         run: |
           # Build for multiple targets using cross
@@ -136,8 +133,6 @@ jobs:
             "aarch64-apple-darwin"
           )
 
-          mkdir -p release
-          
           for target in "${targets[@]}"; do
             echo "Building for $target..."
             cross build --release --target "$target"
@@ -151,10 +146,9 @@ jobs:
             esac
 
             # Copy to release directory with platform-specific naming
+            mkdir -p "release"
             platform_name=$(echo "$target" | sed 's/unknown-//' | sed 's/pc-//')
             cp "target/$target/release/$binary_name" "release/mcp-serve-$platform_name"
-            
-            echo "Built: release/mcp-serve-$platform_name"
           done
 
           # List built binaries
