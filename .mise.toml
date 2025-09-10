@@ -1,6 +1,7 @@
 [tools]
 dprint = "0.50.1"
 "rust" = "1.89.0"
+"cargo:cross" = "0.2.5"
 
 # Tasks
 
