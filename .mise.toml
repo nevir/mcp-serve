@@ -1,6 +1,6 @@
 [tools]
 dprint = "0.50.1"
-rust = "1.89.0"
+"rust" = { version = "1.89.0", components = "rustfmt,clippy" }
 
 # Tasks
 

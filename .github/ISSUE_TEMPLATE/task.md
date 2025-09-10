@@ -23,7 +23,7 @@ Example: "Implement completion subcommand with shell detection and script genera
 Concrete, testable conditions that must be met for this task to be considered complete.
 Use bullet points for clarity:
 - [ ] Criterion 1
-- [ ] Criterion 2  
+- [ ] Criterion 2
 - [ ] Criterion 3
 -->
 
