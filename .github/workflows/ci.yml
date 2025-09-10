@@ -107,16 +107,18 @@ jobs:
         uses: ./.github/actions/setup-environment
 
       - name: Create GitHub release
-        run: |
-          echo "TODO: Implement actual release-plz release creation"
-          echo "This step will:"
-          echo "1. Create actual GitHub release with tag using release-plz"
-          echo "2. Use generated changelog in release description"
-          echo "3. Command would be: release-plz/action@v0.5 with command: release"
-          echo "4. Environment: GITHUB_TOKEN and CARGO_REGISTRY_TOKEN"
+        uses: release-plz/action@574c1d0ed8491b294f596b7148bafd08cca6a600 # v0.5.115
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Build release binaries
         run: |
+          # Install cross if not available
+          mise install cross
+          
           # Build for multiple targets using cross
           targets=(
             "x86_64-unknown-linux-gnu"
@@ -125,30 +127,96 @@ jobs:
             "aarch64-apple-darwin"
           )
 
+          # Create release directory
+          mkdir -p "release"
+          
           for target in "${targets[@]}"; do
             echo "Building for $target..."
-            cross build --release --target "$target"
+            mise exec cross -- cross build --release --target "$target"
 
-            # Create properly named binaries
+            # Determine binary name and extension
             binary_name="mcp-serve"
+            if [[ "$target" == *windows* ]]; then
+              binary_name="${binary_name}.exe"
+            fi
+
+            # Create platform-specific binary name for release
+            platform_binary=""
             case "$target" in
-              *windows*)
-                binary_name="${binary_name}.exe"
+              "x86_64-unknown-linux-gnu")
+                platform_binary="mcp-serve-linux-x86_64"
+                ;;
+              "x86_64-pc-windows-msvc")
+                platform_binary="mcp-serve-windows-x86_64.exe"
+                ;;
+              "x86_64-apple-darwin")
+                platform_binary="mcp-serve-macos-x86_64"
+                ;;
+              "aarch64-apple-darwin")
+                platform_binary="mcp-serve-macos-aarch64"
                 ;;
             esac
 
-            # Copy to release directory with platform-specific naming
-            mkdir -p "release"
-            platform_name=$(echo "$target" | sed 's/unknown-//' | sed 's/pc-//')
-            cp "target/$target/release/$binary_name" "release/mcp-serve-$platform_name"
+            # Copy binary to release directory
+            cp "target/$target/release/$binary_name" "release/$platform_binary"
+            echo "✓ Built: $platform_binary"
           done
 
-          # List built binaries
-          echo "Built binaries:"
+          # List all built binaries
+          echo ""
+          echo "Built release binaries:"
           ls -la release/
 
       - name: Upload binaries to release
         run: |
-          echo "TODO: Upload compiled binaries to the GitHub release"
-          echo "This step will upload the binaries built above to the release"
-          echo "Command would use: softprops/action-gh-release or gh CLI"
+          # Verify we have binaries to upload
+          if [ ! -d "release" ] || [ -z "$(ls -A release/)" ]; then
+            echo "❌ No binaries found in release/ directory"
+            exit 1
+          fi
+          
+          # Get the latest release tag (created by release-plz)
+          RELEASE_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null)
+          if [ -z "$RELEASE_TAG" ] || [ "$RELEASE_TAG" = "null" ]; then
+            echo "❌ No release found. Release creation may have failed."
+            exit 1
+          fi
+          
+          echo "Found release tag: $RELEASE_TAG"
+          echo "Uploading binaries to release..."
+          
+          # Track upload status
+          upload_count=0
+          failed_uploads=()
+          
+          # Upload all binaries to the release
+          for binary in release/*; do
+            if [[ -f "$binary" ]]; then
+              binary_name=$(basename "$binary")
+              echo "Uploading $binary_name..."
+              
+              if gh release upload "$RELEASE_TAG" "$binary" --clobber 2>/dev/null; then
+                echo "✅ Successfully uploaded $binary_name"
+                upload_count=$((upload_count + 1))
+              else
+                echo "❌ Failed to upload $binary_name"
+                failed_uploads+=("$binary_name")
+              fi
+            fi
+          done
+          
+          # Report results
+          echo ""
+          echo "Upload summary:"
+          echo "  Successfully uploaded: $upload_count binaries"
+          
+          if [ ${#failed_uploads[@]} -gt 0 ]; then
+            echo "  Failed uploads: ${#failed_uploads[@]}"
+            printf '    - %s\n' "${failed_uploads[@]}"
+            echo "❌ Some binary uploads failed"
+            exit 1
+          else
+            echo "✅ All $upload_count binaries uploaded successfully to release $RELEASE_TAG"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
