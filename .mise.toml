@@ -27,7 +27,9 @@ depends = ["test-style", "test-unit"]
 
 [tasks.build-release]
 description = "Build cross-platform release binaries"
-run = '''
+run = '''#!/bin/bash
+set -euo pipefail
+
 # Create release directory
 mkdir -p release
 
