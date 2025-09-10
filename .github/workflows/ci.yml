@@ -120,9 +120,9 @@ jobs:
 
       - name: Upload binaries to release
         run: |
-          # Verify we have binaries to upload
+          # Verify we have platform directories to upload
           if [ ! -d "release" ] || [ -z "$(ls -A release/)" ]; then
-            echo "❌ No binaries found in release/ directory"
+            echo "❌ No platform directories found in release/ directory"
             exit 1
           fi
 
@@ -140,21 +140,29 @@ jobs:
           upload_count=0
           failed_uploads=()
 
-          # Upload all binaries to the release
-          for binary in release/*; do
-            if [[ -f "$binary" ]]; then
-              binary_name=$(basename "$binary")
-              echo "Uploading $binary_name..."
+          # Create archives for each platform and upload them
+          cd release
+          for platform_dir in */; do
+            if [[ -d "$platform_dir" ]]; then
+              platform_name=$(basename "$platform_dir")
+              archive_name="mcp-serve-$platform_name.tar.gz"
 
-              if gh release upload "$RELEASE_TAG" "$binary" --clobber 2>/dev/null; then
-                echo "✅ Successfully uploaded $binary_name"
+              echo "Creating archive for $platform_name..."
+              tar -czf "../$archive_name" -C "$platform_dir" .
+
+              echo "Uploading $archive_name..."
+              cd ..
+              if gh release upload "$RELEASE_TAG" "$archive_name" --clobber 2>/dev/null; then
+                echo "✅ Successfully uploaded $archive_name"
                 upload_count=$((upload_count + 1))
               else
-                echo "❌ Failed to upload $binary_name"
-                failed_uploads+=("$binary_name")
+                echo "❌ Failed to upload $archive_name"
+                failed_uploads+=("$archive_name")
               fi
+              cd release
             fi
           done
+          cd ..
 
           # Report results
           echo ""

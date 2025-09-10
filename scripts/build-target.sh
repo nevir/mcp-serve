@@ -28,15 +28,18 @@ if [[ "$target" == *windows* ]]; then
   binary_name="${binary_name}.exe"
 fi
 
-# Create platform-specific binary name from target
-platform_binary="mcp-serve-$target"
-# Clean up the name for readability
-platform_binary=$(echo "$platform_binary" | sed 's/unknown-//' | sed 's/pc-//' | sed 's/apple-darwin/macos/' | sed 's/linux-gnu/linux/')
-# Add .exe extension for Windows
+# Create platform-specific directory name from target
+platform_dir=$(echo "$target" | sed 's/unknown-//' | sed 's/pc-//' | sed 's/apple-darwin/macos/' | sed 's/linux-gnu/linux/')
+release_dir="release/$platform_dir"
+
+# Create the platform-specific directory
+mkdir -p "$release_dir"
+
+# Copy binary to platform directory with standard name (keeping .exe for Windows)
+final_binary_name="mcp-serve"
 if [[ "$target" == *windows* ]]; then
-  platform_binary="${platform_binary}.exe"
+  final_binary_name="mcp-serve.exe"
 fi
 
-# Copy binary to release directory
-cp "target/$target/release/$binary_name" "release/$platform_binary"
-echo "✓ Built: $platform_binary"
+cp "target/$target/release/$binary_name" "$release_dir/$final_binary_name"
+echo "✓ Built: $platform_dir/$final_binary_name"
