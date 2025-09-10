@@ -14,10 +14,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
 
+      - name: Cache Rust directories
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/binstall  
+            ~/.cargo/env
+            ~/.rustup
+          key: rust-cache-${{ runner.os }}-${{ hashFiles('.mise.toml') }}
+          restore-keys: |
+            rust-cache-${{ runner.os }}-
+
       - name: Setup mise
         uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
-        with:
-          cache: false # Disable caching to avoid Rust toolchain conflicts
 
       - name: Install and verify Rust toolchain
         run: |
@@ -80,8 +90,6 @@ jobs:
 
       - name: Setup mise
         uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
-        with:
-          cache: false # Disable caching to avoid Rust toolchain conflicts
 
       - name: Create release PR with release-plz
         run: |
@@ -107,8 +115,6 @@ jobs:
 
       - name: Setup mise
         uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
-        with:
-          cache: false # Disable caching to avoid Rust toolchain conflicts
 
       - name: Create GitHub release with release-plz
         run: |
