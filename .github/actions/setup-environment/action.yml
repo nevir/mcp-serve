@@ -1,13 +1,13 @@
-name: 'Setup Environment'
-description: 'Common setup steps: checkout, cache Rust directories, and setup mise'
+name: "Setup Environment"
+description: "Common setup steps: checkout, cache Rust directories, and setup mise"
 inputs:
   fetch-depth:
-    description: 'Number of commits to fetch. 0 indicates all history for all branches and tags'
+    description: "Number of commits to fetch. 0 indicates all history for all branches and tags"
     required: false
-    default: '0'
+    default: "0"
 
 runs:
-  using: 'composite'
+  using: "composite"
   steps:
     - name: Checkout code
       uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
