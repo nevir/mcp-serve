@@ -105,12 +105,35 @@ jobs:
 
       - name: Build release binaries
         run: |
-          echo "TODO: Implement cross-platform build matrix"
-          echo "This step will build binaries for:"
-          echo "- macOS (latest)"
-          echo "- Ubuntu (latest)"
-          echo "- Windows (latest)"
-          mise run build
+          # Build for multiple targets using cross
+          targets=(
+            "x86_64-unknown-linux-gnu"
+            "x86_64-pc-windows-msvc"
+            "x86_64-apple-darwin"
+            "aarch64-apple-darwin"
+          )
+
+          for target in "${targets[@]}"; do
+            echo "Building for $target..."
+            cross build --release --target "$target"
+
+            # Create properly named binaries
+            binary_name="mcp-serve"
+            case "$target" in
+              *windows*)
+                binary_name="${binary_name}.exe"
+                ;;
+            esac
+
+            # Copy to release directory with platform-specific naming
+            mkdir -p "release"
+            platform_name=$(echo "$target" | sed 's/unknown-//' | sed 's/pc-//')
+            cp "target/$target/release/$binary_name" "release/mcp-serve-$platform_name"
+          done
+
+          # List built binaries
+          echo "Built binaries:"
+          ls -la release/
 
       - name: Upload binaries to release
         run: |
