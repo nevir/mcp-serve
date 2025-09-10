@@ -15,6 +15,16 @@ targets=(
 echo "Building release binaries for ${#targets[@]} targets..."
 echo ""
 
+# Install all targets first to avoid repeated installations
+echo "Ensuring all targets are installed..."
+for target in "${targets[@]}"; do
+  if ! rustup target list --installed | grep -q "^${target}$"; then
+    echo "Installing target $target..."
+    rustup target add "$target"
+  fi
+done
+echo ""
+
 # Get the directory where this script is located
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

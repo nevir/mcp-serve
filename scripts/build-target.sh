@@ -13,6 +13,12 @@ echo "Building for $target..."
 # Create release directory if it doesn't exist
 mkdir -p release
 
+# Add the target if it's not already installed
+if ! rustup target list --installed | grep -q "^${target}$"; then
+  echo "Installing target $target..."
+  rustup target add "$target"
+fi
+
 # Build for the specified target using cross
 cross build --release --target "$target"
 
