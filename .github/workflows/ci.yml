@@ -11,10 +11,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Setup environment
-        uses: ./.github/actions/setup-environment
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
         with:
           fetch-depth: 1
+
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
 
       - name: Run tests
         run: mise run test
@@ -60,6 +63,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
+
       - name: Setup environment
         uses: ./.github/actions/setup-environment
 
@@ -80,6 +88,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 0
+
       - name: Setup environment
         uses: ./.github/actions/setup-environment
 
