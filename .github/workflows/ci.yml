@@ -1,0 +1,69 @@
+name: CI/CD Pipeline
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  ci:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+        
+      - name: Run tests
+        run: mise run test
+        
+      - name: Verify PR title follows Conventional Commits
+        run: |
+          # Extract PR title and check if it follows Conventional Commits format
+          PR_TITLE="${{ github.event.pull_request.title }}"
+          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\(.+\))?: .+'; then
+            echo "Error: PR title must follow Conventional Commits format"
+            echo "Expected format: type(scope): description"
+            echo "Examples: feat: add new feature, fix(api): resolve bug"
+            echo "Current title: $PR_TITLE"
+            exit 1
+          fi
+          echo "PR title follows Conventional Commits format: $PR_TITLE"
+
+  release:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          
+      - name: Setup mise
+        uses: jdx/mise-action@v2
+        
+      - name: Create release with release-plz
+        run: |
+          echo "TODO: Implement release-plz integration"
+          echo "This step will:"
+          echo "1. Analyze conventional commits to determine version bump"
+          echo "2. Update Cargo.toml version"
+          echo "3. Generate changelog"
+          echo "4. Create GitHub release"
+          
+      - name: Build release binaries
+        run: |
+          echo "TODO: Implement cross-platform builds"
+          echo "This step will build binaries for:"
+          echo "- macOS (latest)"
+          echo "- Ubuntu (latest)" 
+          echo "- Windows (latest)"
+          mise run build
+          
+      - name: Upload binaries to release
+        run: |
+          echo "TODO: Upload compiled binaries to the GitHub release"
