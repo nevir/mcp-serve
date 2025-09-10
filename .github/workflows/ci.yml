@@ -13,9 +13,11 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+        with:
+          fetch-depth: 1
 
-      - name: Setup mise
-        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
 
       - name: Run tests
         run: mise run test
@@ -24,14 +26,37 @@ jobs:
         run: |
           # Extract PR title and check if it follows Conventional Commits format
           PR_TITLE="${{ github.event.pull_request.title }}"
-          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|docs|style|refactor|perf|test|chore|build|ci|revert)(\(.+\))?: .+'; then
-            echo "Error: PR title must follow Conventional Commits format"
-            echo "Expected format: type(scope): description"
-            echo "Examples: feat: add new feature, fix(api): resolve bug"
-            echo "Current title: $PR_TITLE"
+          # Regex pattern for Conventional Commits:
+          # - Required type: feat|fix|docs|style|refactor|test|chore
+          # - Optional scope: (anything except !)
+          # - Optional breaking change indicator: !
+          # - Required colon and space: ": "
+          # - Required description: at least one character
+          # Supports: type: desc, type!: desc, type(scope): desc, type(scope)!: desc, type!(scope): desc
+          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|docs|style|refactor|test|chore)(!(\([^)!]+\))?|(\([^)!]+\))!?)?: .+'; then
+            echo "❌ Error: PR title must follow Conventional Commits format"
+            echo ""
+            echo "Expected format: type[!][(scope)]: description"
+            echo ""
+            echo "Supported types:"
+            echo "  • feat     - new feature"
+            echo "  • fix      - bug fix"
+            echo "  • docs     - documentation changes"
+            echo "  • style    - code style changes (formatting, etc.)"
+            echo "  • refactor - code refactoring"
+            echo "  • test     - adding or modifying tests"
+            echo "  • chore    - maintenance tasks"
+            echo ""
+            echo "Examples:"
+            echo "  ✅ feat: add user authentication"
+            echo "  ✅ fix(api): resolve timeout issue"
+            echo "  ✅ feat!: breaking change to API"
+            echo "  ✅ docs(readme): update installation instructions"
+            echo ""
+            echo "Current title: '$PR_TITLE'"
             exit 1
           fi
-          echo "PR title follows Conventional Commits format: $PR_TITLE"
+          echo "✅ PR title follows Conventional Commits format: $PR_TITLE"
 
   release-plz-pr:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -43,8 +68,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup mise
-        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
 
       - name: Create release PR with release-plz
         run: |
@@ -68,8 +93,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup mise
-        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
 
       - name: Create GitHub release with release-plz
         run: |
