@@ -102,16 +102,18 @@ jobs:
         uses: ./.github/actions/setup-environment
 
       - name: Create GitHub release with release-plz
-        uses: MarcoIeni/release-plz-action@e1b96e8cfeff90d86d37c0e8ba23bf0d84f56ed9 # v0.5
-        with:
-          command: release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "TODO: Implement actual release-plz release creation"
+          echo "This step will:"
+          echo "1. Create actual GitHub release with tag using release-plz"
+          echo "2. Use generated changelog in release description"
+          echo "3. Command would be: release-plz release"
 
   # Build and upload cross-platform binaries when a release is created
   build-and-upload-binaries:
-    # Only run when a tag is created (after release-plz creates the release)
-    if: startsWith(github.ref, 'refs/tags/')
+    # TODO: Enable when ready to test actual releases
+    # Only run when a tag is created (after release-plz creates the release)  
+    if: false # startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
       contents: write
