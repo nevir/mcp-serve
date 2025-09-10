@@ -1,0 +1,13 @@
+[tools]
+dprint = "0.50.1"
+rust = "1.89.0"
+
+# Tasks
+
+[tasks.fix-style]
+description = "Auto-format files to address style/lint issues"
+run = "dprint fmt"
+
+[tasks.test-style]
+description = "Check whether files adhere to style/lint rules"
+run = "dprint check"

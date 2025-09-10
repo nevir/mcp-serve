@@ -1,0 +1,8 @@
+[package]
+name = "mcp-serve"
+version = "0.1.0"
+authors = ["Ian MacLeod <ian@nevir.net>"]
+edition = "2021"
+homepage = "https://github.com/nevir/mcp-serve"
+license = "BlueOak-1.0.0"
+repository = "https://github.com/nevir/mcp-serve"

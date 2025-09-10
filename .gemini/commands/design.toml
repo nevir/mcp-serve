@@ -1,0 +1,7 @@
+description = "Author a technical design for a feature"
+
+prompt = """
+Read `.agents/commands/design.md` and follow its instructions.
+
+User prompt: {{args}}
+"""

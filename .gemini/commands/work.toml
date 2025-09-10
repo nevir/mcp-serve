@@ -1,0 +1,7 @@
+description = "Work on a task"
+
+prompt = """
+Read `.agents/commands/work.md` and follow its instructions.
+
+User prompt: {{args}}
+"""

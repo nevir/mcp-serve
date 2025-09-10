@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__github__:*",
+      "Bash(cargo:*)",
+      "Bash(gh pr:*)",
+      "Bash(git:*)",
+      "Bash(mise:*)",
+      "Write(./**)"
+    ]
+  }
+}
