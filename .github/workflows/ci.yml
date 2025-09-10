@@ -95,7 +95,7 @@ jobs:
        github.ref == 'refs/heads/main' &&
        startsWith(github.event.head_commit.message, 'chore(release):')) ||
       (github.event_name == 'push' &&
-       github.ref == 'refs/heads/17-ci-cd-pipeline/27-upload-release-binaries-to-github-releases')
+       contains(github.ref, '27-upload-release-binaries-to-github-releases'))
     runs-on: ubuntu-latest
     permissions:
       contents: write
