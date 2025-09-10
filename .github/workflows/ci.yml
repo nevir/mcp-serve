@@ -109,22 +109,6 @@ jobs:
           echo "2. Use generated changelog in release description"
           echo "3. Command would be: release-plz release"
 
-  # Build and upload cross-platform binaries when a release is created
-  build-and-upload-binaries:
-    # TODO: Enable when ready to test actual releases
-    # Only run when a tag is created (after release-plz creates the release)  
-    if: false # startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-
-      - name: Setup environment
-        uses: ./.github/actions/setup-environment
-
       - name: Build release binaries
         run: |
           # Build for multiple targets using cross
@@ -158,6 +142,7 @@ jobs:
           ls -la release/
 
       - name: Upload binaries to release
-        uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2
-        with:
-          files: release/mcp-serve-*
+        run: |
+          echo "TODO: Upload compiled binaries to the GitHub release"
+          echo "This step will upload the binaries built above to the release"
+          echo "Command would use: softprops/action-gh-release or gh CLI"
