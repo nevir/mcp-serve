@@ -6,8 +6,8 @@
       "Bash(gh pr:*)",
       "Bash(git:*)",
       "Bash(mise:*)",
-      "Write(.*)",
-      "Update(.*)"
+      "Write(*)",
+      "Update(*)"
     ]
   }
 }
