@@ -5,13 +5,13 @@ use std::path::PathBuf;
 #[command(author, version, about, long_about = None)]
 struct Cli {
     /// Directory to discover tools from
-    #[arg(long, default_value = ".")]
-    tools: PathBuf,
+    #[arg(default_value = ".")]
+    tools_dir: PathBuf,
 }
 
 fn main() {
     let cli = Cli::parse();
 
-    println!("Discovering tools from directory: {}", cli.tools.display());
+    println!("Discovering tools from directory: {}", cli.tools_dir.display());
     println!("Tools functionality working");
 }
