@@ -3,6 +3,14 @@ name = "mcp-serve"
 version = "0.1.0"
 authors = ["Ian MacLeod <ian@nevir.net>"]
 edition = "2021"
+description = "A foundational Rust CLI application for building MCP (Model Context Protocol) servers"
 homepage = "https://github.com/nevir/mcp-serve"
 license = "BlueOak-1.0.0"
 repository = "https://github.com/nevir/mcp-serve"
+
+[dependencies]
+clap = { version = "4.5", features = ["derive"] }
+
+[[bin]]
+name = "mcp-serve"
+path = "src/main.rs"
