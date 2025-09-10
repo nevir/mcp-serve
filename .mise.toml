@@ -4,6 +4,10 @@ rust = "1.89.0"
 
 # Tasks
 
+[tasks.build]
+description = "Build the project"
+run = "cargo build"
+
 [tasks.fix-style]
 description = "Auto-format files to address style/lint issues"
 run = "dprint fmt"
@@ -11,3 +15,11 @@ run = "dprint fmt"
 [tasks.test-style]
 description = "Check whether files adhere to style/lint rules"
 run = "dprint check"
+
+[tasks.test-unit]
+description = "Run unit tests"
+run = "cargo test"
+
+[tasks.test]
+description = "Run all tests"
+depends = ["test-style", "test-unit"]
