@@ -42,7 +42,7 @@ Our goal is to provide a developer experience as simple and immediate as `python
    ```bash
    mcp-serve
    ```
-   The server instantly scans the directory (or a different one specified with `--tools /path/to/tools`), parses the tool definitions, and exposes them on a local HTTP server.
+   The server instantly scans the directory (or a different one specified as `mcp-serve /path/to/tools`), parses the tool definitions, and exposes them on a local HTTP server.
 
 4. **Interact via API:** An AI agent can now communicate with `mcp-serve` using standard MCP HTTP requests:
    - `GET /`: Discovers the list of available tools and their capabilities.
