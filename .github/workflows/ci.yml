@@ -58,7 +58,7 @@ jobs:
           fi
           echo "✅ PR title follows Conventional Commits format: $PR_TITLE"
 
-  release-plz-pr:
+  create-release-pr:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -74,14 +74,14 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-environment
 
-      - name: Create release PR with release-plz
+      - name: Create release PR
         uses: MarcoIeni/release-plz-action@e1b96e8cfeff90d86d37c0e8ba23bf0d84f56ed9 # v0.5
         with:
           command: release-pr
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-  release-plz-release:
+  publish-release:
     # Only run when a release PR is merged to main
     # release-plz creates releases with specific commit message patterns
     if: >
@@ -101,7 +101,7 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-environment
 
-      - name: Create GitHub release with release-plz
+      - name: Create GitHub release
         run: |
           echo "TODO: Implement actual release-plz release creation"
           echo "This step will:"
