@@ -86,6 +86,55 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
+  build-binaries:
+    # TEMPORARILY DISABLED: Run on all pushes for testing
+    # TODO: Restore original condition before merging
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - x86_64-pc-windows-msvc
+          - x86_64-apple-darwin
+          - aarch64-apple-darwin
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Build for ${{ matrix.target }}
+        uses: houseabsolute/actions-rust-cross@065df7f4ba767b3a0e4f30bdf4a50e26ad5e93f0 # v0.0.12
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          args: "--release"
+          strip: true
+
+      - name: Prepare binary for upload
+        run: |
+          # Create platform-specific directory name
+          platform_dir=$(echo "${{ matrix.target }}" | sed 's/unknown-//' | sed 's/pc-//' | sed 's/apple-darwin/macos/' | sed 's/linux-gnu/linux/')
+
+          # Create release directory structure
+          mkdir -p "release/$platform_dir"
+
+          # Determine binary name
+          binary_name="mcp-serve"
+          if [[ "${{ matrix.target }}" == *windows* ]]; then
+            binary_name="mcp-serve.exe"
+          fi
+
+          # Copy binary to release directory
+          cp "target/${{ matrix.target }}/release/$binary_name" "release/$platform_dir/"
+          echo "✓ Prepared: $platform_dir/$binary_name"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: binary-${{ matrix.target }}
+          path: release/
+          retention-days: 1
+
   publish-release:
     # TEMPORARILY DISABLED: Run on all pushes for testing
     # TODO: Restore original condition before merging:
@@ -94,6 +143,7 @@ jobs:
     #   github.event_name == 'push' &&
     #   github.ref == 'refs/heads/main' &&
     #   startsWith(github.event.head_commit.message, 'chore(release):')
+    needs: build-binaries
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -104,11 +154,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup environment
-        uses: ./.github/actions/setup-environment
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@87c55149d96e628cc2ef7e6fc2aab372015aec85 # v4.1.1
+        with:
+          pattern: binary-*
+          path: artifacts
+          merge-multiple: true
 
-      - name: Build release binaries
-        run: mise run build-release
+      - name: Organize binaries
+        run: |
+          # Move all binaries to release directory
+          mkdir -p release
+          find artifacts -type f -name "mcp-serve*" -exec cp {} release/ \; 2>/dev/null || true
+
+          # If that didn't work, copy the directory structure
+          if [ -z "$(ls -A release/ 2>/dev/null)" ]; then
+            cp -r artifacts/* release/ 2>/dev/null || true
+          fi
+
+          echo "Final release directory structure:"
+          find release -type f
 
       - name: Create GitHub release
         uses: release-plz/action@574c1d0ed8491b294f596b7148bafd08cca6a600 # v0.5.115
