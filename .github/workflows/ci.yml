@@ -112,22 +112,9 @@ jobs:
   build-and-upload-binaries:
     # Only run when a tag is created (after release-plz creates the release)
     if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ${{ matrix.os }}
+    runs-on: ubuntu-latest
     permissions:
       contents: write
-
-    strategy:
-      matrix:
-        include:
-          - os: ubuntu-latest
-            target: x86_64-unknown-linux-gnu
-            binary-suffix: ""
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            binary-suffix: ".exe"
-          - os: macos-latest
-            target: x86_64-apple-darwin
-            binary-suffix: ""
 
     steps:
       - name: Checkout code
@@ -136,30 +123,45 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-environment
 
-      - name: Build release binary
-        run: mise run build
+      - name: Install cross
+        run: cargo install cross --git https://github.com/cross-rs/cross
 
-      - name: Prepare binary for upload
-        shell: bash
+      - name: Build release binaries
         run: |
-          # Create properly named binary with platform information
-          binary_name="mcp-serve${{ matrix.binary-suffix }}"
-          platform_name="${{ matrix.target }}"
+          # Build for multiple targets using cross
+          targets=(
+            "x86_64-unknown-linux-gnu"
+            "x86_64-pc-windows-msvc"
+            "x86_64-apple-darwin"
+            "aarch64-apple-darwin"
+          )
 
-          # Copy built binary to release directory with platform-specific naming
           mkdir -p release
-          if [ -f "target/release/$binary_name" ]; then
-            cp "target/release/$binary_name" "release/mcp-serve-$platform_name${{ matrix.binary-suffix }}"
-            echo "Prepared binary: release/mcp-serve-$platform_name${{ matrix.binary-suffix }}"
-            ls -la release/
-          else
-            echo "Binary not found at target/release/$binary_name"
-            echo "Contents of target/release:"
-            ls -la target/release/ || echo "target/release directory not found"
-            exit 1
-          fi
+          
+          for target in "${targets[@]}"; do
+            echo "Building for $target..."
+            cross build --release --target "$target"
 
-      - name: Upload binary to release
+            # Create properly named binaries
+            binary_name="mcp-serve"
+            case "$target" in
+              *windows*)
+                binary_name="${binary_name}.exe"
+                ;;
+            esac
+
+            # Copy to release directory with platform-specific naming
+            platform_name=$(echo "$target" | sed 's/unknown-//' | sed 's/pc-//')
+            cp "target/$target/release/$binary_name" "release/mcp-serve-$platform_name"
+            
+            echo "Built: release/mcp-serve-$platform_name"
+          done
+
+          # List built binaries
+          echo "Built binaries:"
+          ls -la release/
+
+      - name: Upload binaries to release
         uses: softprops/action-gh-release@c062e08bd532815e2082a85e87e3ef29c3e6d191 # v2
         with:
           files: release/mcp-serve-*
