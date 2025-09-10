@@ -11,33 +11,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
-
-      - name: Cache Rust directories
-        uses: actions/cache@0400d5f644dc74513175e3cd8d07132dd4860809 # v4.2.4
-        with:
-          path: |
-            ~/.cargo/bin
-            ~/.cargo/binstall
-            ~/.cargo/env
-            ~/.rustup
-          key: rust-cache-${{ runner.os }}-${{ hashFiles('.mise.toml') }}
-          restore-keys: |
-            rust-cache-${{ runner.os }}-
-
-      - name: Setup mise
-        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
-
-      - name: Install and verify Rust toolchain
-        run: |
-          # Ensure Rust toolchain is properly installed before running tests
-          mise install rust
-          # Install required components explicitly
-          mise exec rust -- rustup component add rustfmt clippy
-          # Verify installation
-          mise exec rust -- rustc --version
-          mise exec rust -- rustfmt --version
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
 
       - name: Run tests
         run: mise run test
@@ -83,13 +58,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
         with:
-          fetch-depth: 0
-
-      - name: Setup mise
-        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+          fetch-depth: '0'
 
       - name: Create release PR with release-plz
         run: |
@@ -108,13 +80,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955 # v4
+      - name: Setup environment
+        uses: ./.github/actions/setup-environment
         with:
-          fetch-depth: 0
-
-      - name: Setup mise
-        uses: jdx/mise-action@c37c93293d6b742fc901e1406b8f764f6fb19dac # v2
+          fetch-depth: '0'
 
       - name: Create GitHub release with release-plz
         run: |
