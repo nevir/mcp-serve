@@ -16,7 +16,7 @@ Author a technical design for the given feature.
    - Use the requirements and user scenarios from the `Spec` issue to inform the technical design.
    - This design issue will be a sub-issue of the 'root' `Feature` issue (not the Spec).
      - The title of the issue must be prefixed by the parent feature issue, separated by `:`.
-       - E.g. "Shell Completion: Design" for a "Design" sub-issue of "Shell Completion".
+       - E.g. "User Authentication: Design" for a "Design" sub-issue of "User Authentication".
    - After creating the issue, add it as a sub-issue to the 'root' `Feature` issue.
 
 4. Output a hyperlink to the new design issue
@@ -65,6 +65,7 @@ Author a technical design for the given feature.
    - No `[BLOCKS IMPLEMENTATION]` markers remain
    - All `[IMPLEMENTATION DECISION]` points have clear validation criteria
    - All technical decisions have clear rationale
+   - Alternative approaches are documented
    - Technical risks are identified with mitigation strategies
    - All research is complete
    - Architecture supports all requirements from the spec

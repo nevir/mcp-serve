@@ -15,7 +15,7 @@ Author a spec for the given feature.
    - Use the description of our 'root' issue as a starting point to begin to fill in the template.
    - This spec issue will be a sub-issue of the 'root' `Feature` issue.
      - The title of the issue must be prefixed by the parent issue, separated by `:`.
-       - E.g. "Shell Completion: Spec" for a "Spec" sub-issue of "Shell Completion".
+       - E.g. "User Authentication: Spec" for a "Spec" sub-issue of "User Authentication".
    - After creating the issue, add it as a sub-issue to the 'root' issue.
 
 4. Output a hyperlink to the new spec issue

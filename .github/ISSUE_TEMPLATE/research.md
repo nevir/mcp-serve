@@ -12,14 +12,14 @@ labels: ["task", "research"]
 
 <!--
 Define the specific question(s) or decisions that need research. Be concrete about scope.
-Example: "What are the most ergonomic ways to enable shell completion for users who install mcp-serve outside of Homebrew?"
+Example: "What are the most secure and user-friendly methods for implementing two-factor authentication (2FA) in a web application?"
 -->
 
 ## Methodology
 
 <!--
 Describe how you'll research this. What will you compare/analyze? What sources will you check?
-Examples: "Analyze completion patterns from 10+ popular CLI tools", "Survey shell configuration approaches", "Test installation methods across different environments"
+Examples: "Analyze 2FA implementations in 5+ popular web services", "Survey security best practices for storing user credentials", "Test different 2FA libraries for ease of integration and security features"
 -->
 
 ## Findings
@@ -36,26 +36,26 @@ Present the viable approaches you found, with honest pros/cons for each.
 Use subsections for each option:
 -->
 
-### Option 1: [Name]
+### Option: [Name]
 
 <!--
 Description of approach
-**Pros:** 
+**Pros:**
 - Benefit 1
 - Benefit 2
 
 **Cons:**
-- Drawback 1  
+- Drawback 1
 - Drawback 2
 -->
 
-### Option 2: [Name]
+### Option: [Name]
 
 <!-- Repeat pattern above -->
 
 ## Recommendation
 
 <!--
-Based on your research, what approach do you recommend and why? 
+Based on your research, what approach do you recommend and why?
 Include implementation details if relevant. Be clear about the reasoning that led to this choice.
 -->

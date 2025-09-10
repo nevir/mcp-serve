@@ -25,7 +25,7 @@ Principles:
 
 <!--
 Brief summary of what you're building technically. This should connect the user needs from the Spec to the technical solution.
-Example: "Implement shell completion using Rust's clap_complete crate with a `mcp-serve completion <shell>` subcommand that outputs completion scripts for eval or static file generation."
+Example: "Implement a new REST API endpoint for user profile updates, including data validation and persistence to the database."
 -->
 
 ## Architecture
@@ -33,16 +33,16 @@ Example: "Implement shell completion using Rust's clap_complete crate with a `mc
 <!--
 High-level technical components and how they fit together.
 Include: key modules/crates, data flow, integration points
-Example: "Extend mcp-serve with completion subcommand, integrate clap_complete for script generation, modify Homebrew formula to auto-install completions"
+Example: "Add a new controller to handle `/api/v1/profile` requests, a service layer for business logic, and a repository for database interaction. Update the API gateway to route requests."
 -->
 
 ## Technical Decisions
 
 <!--
-Key technical choices with brief rationale.
+Key technical choices with brief rationale for the chosen approach.
 Examples:
-- "Use clap_complete over custom completion - proven, maintained, integrates with existing clap usage"
-- "Generate scripts dynamically vs static files - allows runtime customization of completions"
+- "Use JWT for authentication to ensure stateless and secure API calls."
+- "Use a PostgreSQL database for its robustness and support for JSON data types."
 -->
 
 ## Open Technical Questions
@@ -50,8 +50,8 @@ Examples:
 <!--
 Technical decisions or research that still need resolution.
 Examples:
-- "Should completion scripts be embedded at compile time or generated dynamically?"
-- "How to handle custom subcommands from plugins in completion?"
+- "Should we use a document-based or relational schema for storing user preferences?"
+- "What is the best strategy for caching user session data?"
 -->
 
 ## Risks & Mitigation
@@ -59,15 +59,41 @@ Examples:
 <!--
 Technical risks and how to address them.
 Examples:
-- "Risk: Completion might be slow for large configs. Mitigation: Cache completion data, benchmark performance"
-- "Risk: Shell compatibility issues. Mitigation: Test across multiple shell versions, fallback gracefully"
+- "Risk: High latency on profile image uploads. Mitigation: Offload image processing to a background worker queue."
+- "Risk: Database schema changes may require downtime. Mitigation: Implement a blue-green deployment strategy for database migrations."
 -->
+
+## Alternatives Considered
+
+<!--
+For each alternative, create a sub-section and document the pros, cons, and why it was not chosen.
+-->
+
+### Alternative: [Name]
+
+<!--
+Description of approach
+
+**Pros:**
+- Benefit 1
+- Benefit 2
+
+**Cons:**
+- Drawback 1
+- Drawback 2
+
+**Rationale for discarding:** Why we ultimately didn't choose it
+-->
+
+### Alternative: [Name]
+
+<!-- Repeat pattern above -->
 
 ## Implementation Notes
 
 <!--
 Decisions that can be made during implementation, with validation criteria.
 Examples:
-- "Specific clap_complete API usage - validate performance is <100ms"
-- "Shell detection method - test across target environments during implementation" 
+- "Specific validation library to use - validate that it supports custom validation rules."
+- "Error handling strategy for external API calls - test for graceful failure and retries."
 -->

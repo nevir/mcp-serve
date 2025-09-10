@@ -26,10 +26,10 @@ Break down a technical design into discrete, actionable task issues.
 4. Create task issues for each discrete work item:
    - Use the `Task` template for each issue
    - Title should be prefixed by the parent feature, separated by `:`
-     - E.g. "Shell Completion: Add clap_complete dependency" for a task under "Shell Completion"
+     - E.g. "User Authentication: Add password hashing library" for a task under "User Authentication"
    - Top-level tasks should be sub-issues of the root `Feature` issue (not the Design)
    - For "epic" tasks with multiple steps, create sub-tasks as sub-issues of the epic task
-     - E.g. "Shell Completion: CLI Implementation: zsh Support" as a sub-task of an "Shell Completion: CLI Implementation" epic.
+     - E.g. "User Authentication: API Implementation: Add login endpoint" as a sub-task of an "User Authentication: API Implementation" epic.
    - Include clear acceptance criteria that define "done"
    - Add technical notes for context and dependencies
 

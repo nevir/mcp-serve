@@ -20,7 +20,7 @@ Principles:
 
 <!--
 Describe the main user flow in plain language.
-Example: "A developer installs mcp-serve via Homebrew and wants to use shell completion to discover commands efficiently."
+Example: "A new user signs up for the service, creates a profile, and invites a team member."
 -->
 
 ### Acceptance Scenarios
@@ -29,8 +29,9 @@ Example: "A developer installs mcp-serve via Homebrew and wants to use shell com
 Write testable scenarios using Given/When/Then format. Include edge cases like boundary conditions and error scenarios.
 
 Examples:
-1. _Given_ fresh shell after Homebrew install, _when_ user types `mcp-serve <TAB>`, _then_ completion shows available commands
-2. _Given_ invalid mcp-serve config, _when_ user attempts completion, _then_ shows graceful fallback or error message -->
+1. _Given_ a user is on the pricing page, _when_ they click the 'Pro' plan, _then_ they are taken to the checkout page.
+2. _Given_ a user enters an invalid email address, _when_ they submit the registration form, _then_ an error message is displayed.
+-->
 
 1. _Given_ [initial state], _when_ [action], _then_ [expected outcome]
 2. …
@@ -41,7 +42,7 @@ Examples:
 
 <!--
 List capabilities that MUST work for the feature to be considered complete. Derive these from your scenarios above.
-Example: "Tab completion works in bash and zsh" not "Shell completion system"
+Example: "Users can log in with a username and password" not "Authentication system"
 -->
 
 - [capability derived from scenarios above]
