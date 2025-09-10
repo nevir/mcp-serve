@@ -58,9 +58,16 @@ jobs:
           fi
           echo "✅ PR title follows Conventional Commits format: $PR_TITLE"
 
-  release-plz-pr:
+  create-release-pr:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    concurrency:
+      group: release-plz-${{ github.ref }}
+      cancel-in-progress: false
 
     steps:
       - name: Checkout code
@@ -71,21 +78,24 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-environment
 
-      - name: Create release PR with release-plz
-        run: |
-          echo "TODO: Implement release-plz integration for PR creation"
-          echo "This step will:"
-          echo "1. Analyze conventional commits since last release"
-          echo "2. Determine appropriate version bump"
-          echo "3. Update Cargo.toml version in a new PR"
-          echo "4. Generate changelog for the PR"
-          echo "5. Create release PR for manual review and merge"
+      - name: Create release PR
+        uses: release-plz/action@v0.5
+        with:
+          command: release-pr
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
-  release-plz-release:
-    # TODO: Add condition to detect when a release PR is merged
-    # This is a placeholder - actual implementation needs to identify release PR merges
-    if: false # Disabled until proper release PR detection is implemented
+  publish-release:
+    # Only run when a release PR is merged to main
+    # release-plz creates release PRs with 'chore(release):' commit messages
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code
@@ -96,12 +106,14 @@ jobs:
       - name: Setup environment
         uses: ./.github/actions/setup-environment
 
-      - name: Create GitHub release with release-plz
+      - name: Create GitHub release
         run: |
-          echo "TODO: Implement release-plz integration for release creation"
+          echo "TODO: Implement actual release-plz release creation"
           echo "This step will:"
-          echo "1. Create actual GitHub release with tag"
+          echo "1. Create actual GitHub release with tag using release-plz"
           echo "2. Use generated changelog in release description"
+          echo "3. Command would be: release-plz/action@v0.5 with command: release"
+          echo "4. Environment: GITHUB_TOKEN and CARGO_REGISTRY_TOKEN"
 
       - name: Build release binaries
         run: |
@@ -138,3 +150,5 @@ jobs:
       - name: Upload binaries to release
         run: |
           echo "TODO: Upload compiled binaries to the GitHub release"
+          echo "This step will upload the binaries built above to the release"
+          echo "Command would use: softprops/action-gh-release or gh CLI"
