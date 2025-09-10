@@ -1,7 +1,7 @@
 {
   "permissions": {
     "allow": [
-      "mcp__github__:*",
+      "mcp__github",
       "Bash(cargo:*)",
       "Bash(gh pr:*)",
       "Bash(git:*)",
