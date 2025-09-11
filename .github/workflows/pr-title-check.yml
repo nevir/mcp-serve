@@ -1,0 +1,46 @@
+name: PR Title Check
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  validate-pr-title:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR title follows Conventional Commits
+        run: |
+          # Extract PR title and check if it follows Conventional Commits format
+          PR_TITLE="${{ github.event.pull_request.title }}"
+
+          # Regex pattern for Conventional Commits:
+          # - Required type: feat|fix|docs|style|refactor|test|chore
+          # - Optional scope: (anything except !)
+          # - Optional breaking change indicator: !
+          # - Required colon and space: ": "
+          # - Required description: at least one character
+          # Supports: type: desc, type!: desc, type(scope): desc, type(scope)!: desc, type!(scope): desc
+          if ! echo "$PR_TITLE" | grep -qE '^(feat|fix|docs|style|refactor|test|chore)(!(\([^)!]+\))?|(\([^)!]+\))!?)?: .+'; then
+            echo "❌ Error: PR title must follow Conventional Commits format"
+            echo ""
+            echo "Expected format: type[!][(scope)]: description"
+            echo ""
+            echo "Supported types:"
+            echo "  • feat     - new feature"
+            echo "  • fix      - bug fix"
+            echo "  • docs     - documentation changes"
+            echo "  • style    - code style changes (formatting, etc.)"
+            echo "  • refactor - code refactoring"
+            echo "  • test     - adding or modifying tests"
+            echo "  • chore    - maintenance tasks"
+            echo ""
+            echo "Examples:"
+            echo "  ✅ feat: add user authentication"
+            echo "  ✅ fix(api): resolve timeout issue"
+            echo "  ✅ feat!: breaking change to API"
+            echo "  ✅ docs(readme): update installation instructions"
+            echo ""
+            echo "Current title: '$PR_TITLE'"
+            exit 1
+          fi
+          echo "✅ PR title follows Conventional Commits format: $PR_TITLE"
