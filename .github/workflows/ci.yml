@@ -86,6 +86,64 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
+  build-binaries:
+    # Only run when a release PR is merged to main
+    # release-plz creates release PRs with 'chore(release):' commit messages
+    if: >
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main' &&
+      startsWith(github.event.head_commit.message, 'chore(release):')
+    strategy:
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-gnu
+            os: ubuntu-latest
+          - target: x86_64-pc-windows-msvc
+            os: windows-latest
+          - target: x86_64-apple-darwin
+            os: macos-latest
+          - target: aarch64-apple-darwin
+            os: macos-latest
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Build for ${{ matrix.target }}
+        uses: houseabsolute/actions-rust-cross@9a1618ffb70e8374ab5f48fcccea3ebeacf57971 # v1.0.5
+        with:
+          command: build
+          target: ${{ matrix.target }}
+          args: "--release"
+          strip: true
+
+      - name: Prepare binary for upload
+        shell: bash
+        run: |
+          # Create platform-specific directory name
+          platform_dir=$(echo "${{ matrix.target }}" | sed 's/unknown-//' | sed 's/pc-//' | sed 's/apple-darwin/macos/' | sed 's/linux-gnu/linux/')
+
+          # Create release directory structure
+          mkdir -p "release/$platform_dir"
+
+          # Determine binary name
+          binary_name="mcp-serve"
+          if [[ "${{ matrix.target }}" == *windows* ]]; then
+            binary_name="mcp-serve.exe"
+          fi
+
+          # Copy binary to release directory
+          cp "target/${{ matrix.target }}/release/$binary_name" "release/$platform_dir/"
+          echo "✓ Prepared: $platform_dir/$binary_name"
+
+      - name: Upload binary artifact
+        uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3 # v4.3.1
+        with:
+          name: binary-${{ matrix.target }}
+          path: release/
+          retention-days: 1
+
   publish-release:
     # Only run when a release PR is merged to main
     # release-plz creates release PRs with 'chore(release):' commit messages
@@ -93,6 +151,7 @@ jobs:
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       startsWith(github.event.head_commit.message, 'chore(release):')
+    needs: build-binaries
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -103,52 +162,93 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Setup environment
-        uses: ./.github/actions/setup-environment
+      - name: Download all binary artifacts
+        uses: actions/download-artifact@87c55149d96e628cc2ef7e6fc2aab372015aec85 # v4.1.1
+        with:
+          pattern: binary-*
+          path: artifacts
+          merge-multiple: true
+
+      - name: Organize binaries
+        run: |
+          # Move all binaries to release directory
+          mkdir -p release
+          find artifacts -type f -name "mcp-serve*" -exec cp {} release/ \; 2>/dev/null || true
+
+          # If that didn't work, copy the directory structure
+          if [ -z "$(ls -A release/ 2>/dev/null)" ]; then
+            cp -r artifacts/* release/ 2>/dev/null || true
+          fi
+
+          echo "Final release directory structure:"
+          find release -type f
 
       - name: Create GitHub release
-        run: |
-          echo "TODO: Implement actual release-plz release creation"
-          echo "This step will:"
-          echo "1. Create actual GitHub release with tag using release-plz"
-          echo "2. Use generated changelog in release description"
-          echo "3. Command would be: release-plz/action@v0.5 with command: release"
-          echo "4. Environment: GITHUB_TOKEN and CARGO_REGISTRY_TOKEN"
-
-      - name: Build release binaries
-        run: |
-          # Build for multiple targets using cross
-          targets=(
-            "x86_64-unknown-linux-gnu"
-            "x86_64-pc-windows-msvc"
-            "x86_64-apple-darwin"
-            "aarch64-apple-darwin"
-          )
-
-          for target in "${targets[@]}"; do
-            echo "Building for $target..."
-            cross build --release --target "$target"
-
-            # Create properly named binaries
-            binary_name="mcp-serve"
-            case "$target" in
-              *windows*)
-                binary_name="${binary_name}.exe"
-                ;;
-            esac
-
-            # Copy to release directory with platform-specific naming
-            mkdir -p "release"
-            platform_name=$(echo "$target" | sed 's/unknown-//' | sed 's/pc-//')
-            cp "target/$target/release/$binary_name" "release/mcp-serve-$platform_name"
-          done
-
-          # List built binaries
-          echo "Built binaries:"
-          ls -la release/
+        uses: release-plz/action@574c1d0ed8491b294f596b7148bafd08cca6a600 # v0.5.115
+        with:
+          command: release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CARGO_REGISTRY_TOKEN: ${{ secrets.CARGO_REGISTRY_TOKEN }}
 
       - name: Upload binaries to release
         run: |
-          echo "TODO: Upload compiled binaries to the GitHub release"
-          echo "This step will upload the binaries built above to the release"
-          echo "Command would use: softprops/action-gh-release or gh CLI"
+          # Verify we have platform directories to upload
+          if [ ! -d "release" ] || [ -z "$(ls -A release/)" ]; then
+            echo "❌ No platform directories found in release/ directory"
+            exit 1
+          fi
+
+          # Get the latest release tag (created by release-plz)
+          RELEASE_TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName' 2>/dev/null)
+          if [ -z "$RELEASE_TAG" ] || [ "$RELEASE_TAG" = "null" ]; then
+            echo "❌ No release found. Release creation may have failed."
+            exit 1
+          fi
+
+          echo "Found release tag: $RELEASE_TAG"
+          echo "Uploading binaries to release..."
+
+          # Track upload status
+          upload_count=0
+          failed_uploads=()
+
+          # Create archives for each platform and upload them
+          cd release
+          for platform_dir in */; do
+            if [[ -d "$platform_dir" ]]; then
+              platform_name=$(basename "$platform_dir")
+              archive_name="mcp-serve-$platform_name.tar.gz"
+
+              echo "Creating archive for $platform_name..."
+              tar -czf "../$archive_name" -C "$platform_dir" .
+
+              echo "Uploading $archive_name..."
+              cd ..
+              if gh release upload "$RELEASE_TAG" "$archive_name" --clobber 2>/dev/null; then
+                echo "✅ Successfully uploaded $archive_name"
+                upload_count=$((upload_count + 1))
+              else
+                echo "❌ Failed to upload $archive_name"
+                failed_uploads+=("$archive_name")
+              fi
+              cd release
+            fi
+          done
+          cd ..
+
+          # Report results
+          echo ""
+          echo "Upload summary:"
+          echo "  Successfully uploaded: $upload_count binaries"
+
+          if [ ${#failed_uploads[@]} -gt 0 ]; then
+            echo "  Failed uploads: ${#failed_uploads[@]}"
+            printf '    - %s\n' "${failed_uploads[@]}"
+            echo "❌ Some binary uploads failed"
+            exit 1
+          else
+            echo "✅ All $upload_count binaries uploaded successfully to release $RELEASE_TAG"
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}

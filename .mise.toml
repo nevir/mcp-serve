@@ -24,3 +24,11 @@ run = "cargo test"
 [tasks.test]
 description = "Run all tests"
 depends = ["test-style", "test-unit"]
+
+[tasks.build-target]
+description = "Build for a specific target (usage: mise run build-target -- <target>)"
+run = "scripts/build-target.sh"
+
+[tasks.build-release]
+description = "Build cross-platform release binaries for all targets"
+run = "scripts/build-release.sh"
