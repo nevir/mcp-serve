@@ -14,6 +14,14 @@ faccess = "0.2.4"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_yaml_ng = "0.10"
+thiserror = "1.0"
+
+[lib]
+name = "mcp_serve"
+path = "src/lib.rs"
+
+[dev-dependencies]
+tempfile = "3.0"
 
 [[bin]]
 name = "mcp-serve"

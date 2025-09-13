@@ -1,0 +1,27 @@
+name: Calculator
+title: Simple Calculator
+description: Performs basic arithmetic operations on two numbers.
+input:
+  template: "--operation {{operation}} --a {{a}} --b {{b}}"
+  schema:
+    type: object
+    properties:
+      operation:
+        type: string
+        enum: ["add", "subtract", "multiply", "divide"]
+        description: "The arithmetic operation to perform"
+      a:
+        type: number
+        description: "First number"
+      b:
+        type: number
+        description: "Second number"
+    required: ["operation", "a", "b"]
+output:
+  template: 'Result: (?<result>[\d\.\-]+)'
+  schema:
+    type: object
+    properties:
+      result:
+        type: number
+        description: "The result of the arithmetic operation"

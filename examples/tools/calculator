@@ -1,0 +1,32 @@
+#!/usr/bin/env python3
+"""
+A calculator tool that demonstrates Python-based tools with embedded metadata.
+"""
+
+import sys
+import argparse
+
+def main():
+    parser = argparse.ArgumentParser(description='Simple calculator')
+    parser.add_argument('--operation', choices=['add', 'subtract', 'multiply', 'divide'], required=True)
+    parser.add_argument('--a', type=float, required=True, help='First number')
+    parser.add_argument('--b', type=float, required=True, help='Second number')
+    
+    args = parser.parse_args()
+    
+    if args.operation == 'add':
+        result = args.a + args.b
+    elif args.operation == 'subtract':
+        result = args.a - args.b
+    elif args.operation == 'multiply':
+        result = args.a * args.b
+    elif args.operation == 'divide':
+        if args.b == 0:
+            print("Error: Division by zero", file=sys.stderr)
+            sys.exit(1)
+        result = args.a / args.b
+    
+    print(f"Result: {result}")
+
+if __name__ == '__main__':
+    main()

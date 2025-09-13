@@ -1,0 +1,2 @@
+This is a regular text file that should NOT be discovered by the DirectoryScanner.
+It demonstrates that the scanner properly filters out non-executable files.

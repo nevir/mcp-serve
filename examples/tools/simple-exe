@@ -1,0 +1,4 @@
+#!/usr/bin/env node
+// Simple Node.js executable without sidecar metadata (demonstrates embedded fallback)
+console.log("Hello from Node.js tool")
+console.log("Args:", process.argv.slice(2))
