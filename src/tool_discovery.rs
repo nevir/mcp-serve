@@ -7,6 +7,10 @@
 //! The design separates pure MCP protocol structures from mcp-serve's custom
 //! YAML format that includes templates for command-line argument generation
 //! and output parsing.
+//!
+//! JSON schemas are represented as opaque `serde_json::Value` objects,
+//! allowing for flexible schema definitions without needing to model
+//! the entire JSON Schema specification.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -17,19 +21,27 @@ use std::collections::HashMap;
 /// when communicating with MCP clients. It contains no mcp-serve specific
 /// extensions.
 ///
+/// JSON schemas are represented as opaque `serde_json::Value` objects that can
+/// contain any valid JSON Schema structure.
+///
 /// # Examples
 ///
 /// ```
-/// use mcp_serve::tool_discovery::{McpTool, JsonSchema, JsonSchemaType};
+/// use mcp_serve::tool_discovery::McpTool;
+/// use serde_json::json;
 ///
 /// let tool = McpTool {
 ///     name: "calculate_sum".to_string(),
 ///     title: Some("Calculator".to_string()),
 ///     description: "Add two numbers together".to_string(),
-///     input_schema: JsonSchema {
-///         schema_type: Some(JsonSchemaType::Object),
-///         ..Default::default()
-///     },
+///     input_schema: json!({
+///         "type": "object",
+///         "properties": {
+///             "a": {"type": "number"},
+///             "b": {"type": "number"}
+///         },
+///         "required": ["a", "b"]
+///     }),
 ///     output_schema: None,
 ///     annotations: None,
 /// };
@@ -46,12 +58,17 @@ pub struct McpTool {
     pub description: String,
 
     /// JSON Schema for input parameters (required by MCP spec)
+    ///
+    /// This is an opaque JSON Schema object that can contain any valid
+    /// JSON Schema structure for parameter validation.
     #[serde(rename = "input_schema")]
-    pub input_schema: JsonSchema,
+    pub input_schema: serde_json::Value,
 
     /// Optional JSON Schema for output structure
+    ///
+    /// When provided, tool outputs should conform to this schema structure.
     #[serde(rename = "output_schema")]
-    pub output_schema: Option<JsonSchema>,
+    pub output_schema: Option<serde_json::Value>,
 
     /// Optional metadata annotations
     pub annotations: Option<HashMap<String, serde_yaml_ng::Value>>,
@@ -130,7 +147,10 @@ pub struct ToolInput {
     pub template: String,
 
     /// JSON Schema defining the input parameters
-    pub schema: JsonSchema,
+    ///
+    /// This is an opaque JSON Schema object that can contain any valid
+    /// JSON Schema structure for parameter validation.
+    pub schema: serde_json::Value,
 }
 
 /// Output specification for mcp-serve tools.
@@ -151,113 +171,10 @@ pub struct ToolOutput {
     pub template: String,
 
     /// JSON Schema defining the output structure
-    pub schema: JsonSchema,
-}
-
-/// JSON Schema representation for tool input and output parameter definitions.
-///
-/// This structure represents a JSON Schema object as defined in the JSON Schema
-/// specification, providing type validation and documentation for tool parameters.
-///
-/// # Examples
-///
-/// ```
-/// use mcp_serve::tool_discovery::{JsonSchema, JsonSchemaType};
-/// use std::collections::HashMap;
-///
-/// let schema = JsonSchema {
-///     schema_type: Some(JsonSchemaType::Object),
-///     properties: Some({
-///         let mut props = HashMap::new();
-///         props.insert("name".to_string(), JsonSchema {
-///             schema_type: Some(JsonSchemaType::String),
-///             description: Some("The name parameter".to_string()),
-///             ..Default::default()
-///         });
-///         props
-///     }),
-///     required: Some(vec!["name".to_string()]),
-///     ..Default::default()
-/// };
-/// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
-pub struct JsonSchema {
-    /// The JSON Schema type (object, string, number, etc.)
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
-    pub schema_type: Option<JsonSchemaType>,
-
-    /// Description of this schema element
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub description: Option<String>,
-
-    /// Properties for object-type schemas
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub properties: Option<HashMap<String, JsonSchema>>,
-
-    /// Required property names for object-type schemas
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub required: Option<Vec<String>>,
-
-    /// Items schema for array-type schemas
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub items: Option<Box<JsonSchema>>,
-
-    /// Enumeration of allowed values
-    #[serde(rename = "enum", skip_serializing_if = "Option::is_none")]
-    pub enum_values: Option<Vec<serde_yaml_ng::Value>>,
-
-    /// Default value for this schema element
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub default: Option<serde_yaml_ng::Value>,
-
-    /// Additional properties flag for object schemas
-    #[serde(
-        rename = "additionalProperties",
-        skip_serializing_if = "Option::is_none"
-    )]
-    pub additional_properties: Option<bool>,
-
-    /// Minimum value for numeric schemas
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub minimum: Option<f64>,
-
-    /// Maximum value for numeric schemas
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub maximum: Option<f64>,
-
-    /// Minimum length for string schemas
-    #[serde(rename = "minLength", skip_serializing_if = "Option::is_none")]
-    pub min_length: Option<usize>,
-
-    /// Maximum length for string schemas
-    #[serde(rename = "maxLength", skip_serializing_if = "Option::is_none")]
-    pub max_length: Option<usize>,
-
-    /// Pattern (regex) for string validation
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub pattern: Option<String>,
-}
-
-/// JSON Schema type enumeration.
-///
-/// Represents the core JSON Schema types used for parameter validation.
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
-pub enum JsonSchemaType {
-    /// Object type with properties
-    Object,
-    /// Array type with items
-    Array,
-    /// String type
-    String,
-    /// Numeric type (integer or float)
-    Number,
-    /// Integer type (subset of number)
-    Integer,
-    /// Boolean type
-    Boolean,
-    /// Null type
-    Null,
+    ///
+    /// This is an opaque JSON Schema object that can contain any valid
+    /// JSON Schema structure for result validation.
+    pub schema: serde_json::Value,
 }
 
 impl ToolDefinition {
@@ -266,11 +183,12 @@ impl ToolDefinition {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput, JsonSchema};
+    /// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput};
+    /// use serde_json::json;
     ///
     /// let input = ToolInput {
     ///     template: "--name {{name}}".to_string(),
-    ///     schema: JsonSchema::default(),
+    ///     schema: json!({"type": "object", "properties": {"name": {"type": "string"}}}),
     /// };
     ///
     /// let tool = ToolDefinition::new("example_tool", "An example tool", input);
@@ -313,11 +231,12 @@ impl ToolDefinition {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput, JsonSchema};
+    /// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput};
+    /// use serde_json::json;
     ///
     /// let input = ToolInput {
     ///     template: "--name {{name}}".to_string(),
-    ///     schema: JsonSchema::default(),
+    ///     schema: json!({"type": "object"}),
     /// };
     ///
     /// let tool = ToolDefinition::new("test", "Test tool", input);
@@ -344,15 +263,16 @@ impl McpTool {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::{McpTool, JsonSchema};
+    /// use mcp_serve::tool_discovery::McpTool;
+    /// use serde_json::json;
     ///
-    /// let tool = McpTool::new("test", "Test tool", JsonSchema::default());
+    /// let tool = McpTool::new("test", "Test tool", json!({"type": "object"}));
     /// assert_eq!(tool.name, "test");
     /// ```
     pub fn new(
         name: impl Into<String>,
         description: impl Into<String>,
-        input_schema: JsonSchema,
+        input_schema: serde_json::Value,
     ) -> Self {
         Self {
             name: name.into(),
@@ -371,7 +291,7 @@ impl McpTool {
     }
 
     /// Set the optional output schema.
-    pub fn with_output_schema(mut self, output_schema: JsonSchema) -> Self {
+    pub fn with_output_schema(mut self, output_schema: serde_json::Value) -> Self {
         self.output_schema = Some(output_schema);
         self
     }
@@ -389,12 +309,13 @@ impl ToolInput {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::{ToolInput, JsonSchema};
+    /// use mcp_serve::tool_discovery::ToolInput;
+    /// use serde_json::json;
     ///
-    /// let input = ToolInput::new("--name {{name}}", JsonSchema::default());
+    /// let input = ToolInput::new("--name {{name}}", json!({"type": "object"}));
     /// assert_eq!(input.template, "--name {{name}}");
     /// ```
-    pub fn new(template: impl Into<String>, schema: JsonSchema) -> Self {
+    pub fn new(template: impl Into<String>, schema: serde_json::Value) -> Self {
         Self {
             template: template.into(),
             schema,
@@ -408,12 +329,13 @@ impl ToolOutput {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::{ToolOutput, JsonSchema};
+    /// use mcp_serve::tool_discovery::ToolOutput;
+    /// use serde_json::json;
     ///
-    /// let output = ToolOutput::new("Result: (?<value>.*)", JsonSchema::default());
+    /// let output = ToolOutput::new("Result: (?<value>.*)", json!({"type": "string"}));
     /// assert_eq!(output.template, "Result: (?<value>.*)");
     /// ```
-    pub fn new(template: impl Into<String>, schema: JsonSchema) -> Self {
+    pub fn new(template: impl Into<String>, schema: serde_json::Value) -> Self {
         Self {
             template: template.into(),
             schema,
@@ -424,27 +346,20 @@ impl ToolOutput {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::collections::HashMap;
+    use serde_json::json;
 
     #[test]
     fn test_tool_definition_creation() {
-        let input_schema = JsonSchema {
-            schema_type: Some(JsonSchemaType::Object),
-            properties: Some({
-                let mut props = HashMap::new();
-                props.insert(
-                    "name".to_string(),
-                    JsonSchema {
-                        schema_type: Some(JsonSchemaType::String),
-                        description: Some("Name parameter".to_string()),
-                        ..Default::default()
-                    },
-                );
-                props
-            }),
-            required: Some(vec!["name".to_string()]),
-            ..Default::default()
-        };
+        let input_schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {
+                    "type": "string",
+                    "description": "Name parameter"
+                }
+            },
+            "required": ["name"]
+        });
 
         let input = ToolInput {
             template: "--name {{name}}".to_string(),
@@ -463,14 +378,8 @@ mod tests {
 
     #[test]
     fn test_tool_definition_with_optional_fields() {
-        let input = ToolInput::new("--test", JsonSchema::default());
-        let output = ToolOutput::new(
-            "Result: (?<value>.*)",
-            JsonSchema {
-                schema_type: Some(JsonSchemaType::String),
-                ..Default::default()
-            },
-        );
+        let input = ToolInput::new("--test", json!({"type": "object"}));
+        let output = ToolOutput::new("Result: (?<value>.*)", json!({"type": "string"}));
 
         let tool = ToolDefinition::new("test", "Test tool", input)
             .with_title("Test Tool")
@@ -483,11 +392,7 @@ mod tests {
 
     #[test]
     fn test_mcp_tool_creation() {
-        let input_schema = JsonSchema {
-            schema_type: Some(JsonSchemaType::Object),
-            ..Default::default()
-        };
-
+        let input_schema = json!({"type": "object"});
         let tool = McpTool::new("mcp_test", "MCP test tool", input_schema);
 
         assert_eq!(tool.name, "mcp_test");
@@ -498,26 +403,14 @@ mod tests {
 
     #[test]
     fn test_conversion_to_mcp_tool() {
-        let input_schema = JsonSchema {
-            schema_type: Some(JsonSchemaType::Object),
-            properties: Some({
-                let mut props = HashMap::new();
-                props.insert(
-                    "param".to_string(),
-                    JsonSchema {
-                        schema_type: Some(JsonSchemaType::String),
-                        ..Default::default()
-                    },
-                );
-                props
-            }),
-            ..Default::default()
-        };
+        let input_schema = json!({
+            "type": "object",
+            "properties": {
+                "param": {"type": "string"}
+            }
+        });
 
-        let output_schema = JsonSchema {
-            schema_type: Some(JsonSchemaType::String),
-            ..Default::default()
-        };
+        let output_schema = json!({"type": "string"});
 
         let input = ToolInput::new("--param {{param}}", input_schema.clone());
         let output = ToolOutput::new("Result: (?<result>.*)", output_schema.clone());
@@ -537,47 +430,27 @@ mod tests {
 
     #[test]
     fn test_yaml_serialization_tool_definition() {
-        let input_schema = JsonSchema {
-            schema_type: Some(JsonSchemaType::Object),
-            properties: Some({
-                let mut props = HashMap::new();
-                props.insert(
-                    "title".to_string(),
-                    JsonSchema {
-                        schema_type: Some(JsonSchemaType::String),
-                        description: Some("Ticket title".to_string()),
-                        ..Default::default()
-                    },
-                );
-                props.insert(
-                    "body".to_string(),
-                    JsonSchema {
-                        schema_type: Some(JsonSchemaType::String),
-                        description: Some("Ticket body".to_string()),
-                        ..Default::default()
-                    },
-                );
-                props
-            }),
-            required: Some(vec!["title".to_string(), "body".to_string()]),
-            ..Default::default()
-        };
+        let input_schema = json!({
+            "type": "object",
+            "properties": {
+                "title": {
+                    "type": "string",
+                    "description": "Ticket title"
+                },
+                "body": {
+                    "type": "string",
+                    "description": "Ticket body"
+                }
+            },
+            "required": ["title", "body"]
+        });
 
-        let output_schema = JsonSchema {
-            schema_type: Some(JsonSchemaType::Object),
-            properties: Some({
-                let mut props = HashMap::new();
-                props.insert(
-                    "url".to_string(),
-                    JsonSchema {
-                        schema_type: Some(JsonSchemaType::String),
-                        ..Default::default()
-                    },
-                );
-                props
-            }),
-            ..Default::default()
-        };
+        let output_schema = json!({
+            "type": "object",
+            "properties": {
+                "url": {"type": "string"}
+            }
+        });
 
         let input = ToolInput::new("--title {{title}} {{body}}", input_schema);
         let output = ToolOutput::new("Created: (?<url>https://.*)", output_schema);
@@ -604,7 +477,7 @@ mod tests {
         assert_eq!(parsed.title, Some("Create Ticket".to_string()));
         assert_eq!(parsed.description, "Creates a ticket");
         assert_eq!(parsed.input.template, "--title {{title}} {{body}}");
-        assert!(parsed.input.schema.properties.is_some());
+        assert!(parsed.input.schema["properties"].is_object());
         assert!(parsed.output.is_some());
     }
 
@@ -659,12 +532,9 @@ output:
             tool.input.template,
             "--title {{title}} [--parent {{parent_id}}] [--label {{label}}...] {{body}}"
         );
-        assert_eq!(tool.input.schema.schema_type, Some(JsonSchemaType::Object));
-        assert!(tool.input.schema.properties.is_some());
-        assert_eq!(
-            tool.input.schema.required,
-            Some(vec!["title".to_string(), "body".to_string()])
-        );
+        assert_eq!(tool.input.schema["type"], "object");
+        assert!(tool.input.schema["properties"].is_object());
+        assert_eq!(tool.input.schema["required"], json!(["title", "body"]));
 
         // Verify output
         let output = tool.output.expect("Should have output");
@@ -672,26 +542,17 @@ output:
             .template
             .contains("Ticket created: (?<url>https://.*)"));
         assert!(output.template.contains("ID: (?<id>\\d+)"));
-        assert_eq!(output.schema.schema_type, Some(JsonSchemaType::Object));
+        assert_eq!(output.schema["type"], "object");
     }
 
     #[test]
     fn test_mcp_tool_yaml_serialization() {
-        let input_schema = JsonSchema {
-            schema_type: Some(JsonSchemaType::Object),
-            properties: Some({
-                let mut props = HashMap::new();
-                props.insert(
-                    "param".to_string(),
-                    JsonSchema {
-                        schema_type: Some(JsonSchemaType::String),
-                        ..Default::default()
-                    },
-                );
-                props
-            }),
-            ..Default::default()
-        };
+        let input_schema = json!({
+            "type": "object",
+            "properties": {
+                "param": {"type": "string"}
+            }
+        });
 
         let tool = McpTool::new("mcp_tool", "MCP tool", input_schema);
 
@@ -706,34 +567,27 @@ output:
     }
 
     #[test]
-    fn test_json_schema_types() {
-        let schemas = vec![
-            (JsonSchemaType::Object, "object"),
-            (JsonSchemaType::Array, "array"),
-            (JsonSchemaType::String, "string"),
-            (JsonSchemaType::Number, "number"),
-            (JsonSchemaType::Integer, "integer"),
-            (JsonSchemaType::Boolean, "boolean"),
-            (JsonSchemaType::Null, "null"),
-        ];
+    fn test_json_value_schema_flexibility() {
+        // Test that we can handle various JSON Schema formats as opaque values
+        let simple_schema = json!({"type": "string"});
+        let complex_schema = json!({
+            "type": "object",
+            "properties": {
+                "name": {"type": "string"},
+                "age": {"type": "integer", "minimum": 0}
+            },
+            "required": ["name"]
+        });
 
-        for (schema_type, expected_string) in schemas {
-            let json_schema = JsonSchema {
-                schema_type: Some(schema_type.clone()),
-                ..Default::default()
-            };
+        let input1 = ToolInput::new("--name {{name}}", simple_schema);
+        let input2 = ToolInput::new("--name {{name}} --age {{age}}", complex_schema);
 
-            let yaml = serde_yaml_ng::to_string(&json_schema).unwrap();
+        // Both should serialize and deserialize fine
+        let yaml1 = serde_yaml_ng::to_string(&input1).unwrap();
+        let yaml2 = serde_yaml_ng::to_string(&input2).unwrap();
 
-            // Check for both possible formats: "type: string" and "type: 'string'"
-            let type_line = format!("type: {}", expected_string);
-            let quoted_type_line = format!("type: '{}'", expected_string);
-            assert!(
-                yaml.contains(&type_line) || yaml.contains(&quoted_type_line),
-                "YAML should contain type field. YAML: {}",
-                yaml
-            );
-        }
+        let _parsed1: ToolInput = serde_yaml_ng::from_str(&yaml1).unwrap();
+        let _parsed2: ToolInput = serde_yaml_ng::from_str(&yaml2).unwrap();
     }
 
     #[test]
