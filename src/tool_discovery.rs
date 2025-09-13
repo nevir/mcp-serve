@@ -446,8 +446,8 @@ impl DirectoryScanner {
             let ext = extension.to_string_lossy().to_lowercase();
             matches!(ext.as_str(), "exe" | "bat" | "cmd" | "ps1" | "sh")
         } else {
-            // Extensionless files might be executable (Unix-style)
-            true
+            // For extensionless files, check if the file is actually executable using faccess
+            path.executable()
         }
     }
 
