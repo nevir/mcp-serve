@@ -83,29 +83,41 @@ pub struct McpTool {
 /// The format differs from pure MCP by using `input: { schema, template }` instead
 /// of `input_schema`, and adding `output: { schema, template }` for output parsing.
 ///
+/// Both input and output are required since every tool needs to define its interface
+/// and how to parse its results.
+///
 /// # Examples
 ///
 /// ```
 /// use serde_yaml_ng;
-/// use mcp_serve::tool_discovery::ToolDefinition;
+/// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput, ToolOutput};
+/// use serde_json::json;
 ///
-/// let yaml = r#"
-/// name: create_ticket
-/// title: Create Ticket  
-/// description: Creates a new feature ticket
-/// input:
-///   template: "--title {{title}} {{body}}"
-///   schema:
-///     type: object
-///     properties:
-///       title:
-///         type: string
-///       body:
-///         type: string
-///     required: [title, body]
-/// "#;
+/// // Both input and output are now required
+/// let input = ToolInput::new(
+///     "--title {{title}} {{body}}",
+///     json!({
+///         "type": "object",
+///         "properties": {
+///             "title": {"type": "string"},
+///             "body": {"type": "string"}
+///         },
+///         "required": ["title", "body"]
+///     })
+/// );
 ///
-/// let tool: ToolDefinition = serde_yaml_ng::from_str(yaml).unwrap();
+/// let output = ToolOutput::new(
+///     "Created: (?<url>https://.*)",
+///     json!({
+///         "type": "object",
+///         "properties": {
+///             "url": {"type": "string"}
+///         }
+///     })
+/// );
+///
+/// let tool = ToolDefinition::new("create_ticket", "Creates a new feature ticket", input, output)
+///     .with_title("Create Ticket");
 /// assert_eq!(tool.name, "create_ticket");
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -119,11 +131,11 @@ pub struct ToolDefinition {
     /// Human-readable description of the tool's functionality
     pub description: String,
 
-    /// Input specification with schema and template
+    /// Input specification with schema and template (required)
     pub input: ToolInput,
 
-    /// Optional output specification with schema and template
-    pub output: Option<ToolOutput>,
+    /// Output specification with schema and template (required)
+    pub output: ToolOutput,
 
     /// Optional metadata annotations
     pub annotations: Option<HashMap<String, serde_yaml_ng::Value>>,
@@ -178,49 +190,40 @@ pub struct ToolOutput {
 }
 
 impl ToolDefinition {
-    /// Create a new tool definition with required fields.
+    /// Parse a tool definition from YAML string.
+    ///
+    /// This is the primary way to create `ToolDefinition` instances from
+    /// YAML metadata found in script files or sidecar files.
     ///
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput};
-    /// use serde_json::json;
+    /// use mcp_serve::tool_discovery::ToolDefinition;
     ///
-    /// let input = ToolInput {
-    ///     template: "--name {{name}}".to_string(),
-    ///     schema: json!({"type": "object", "properties": {"name": {"type": "string"}}}),
-    /// };
+    /// let yaml = r#"
+    /// name: example_tool
+    /// description: An example tool
+    /// input:
+    ///   template: "--name {{name}}"
+    ///   schema:
+    ///     type: object
+    ///     properties:
+    ///       name:
+    ///         type: string
+    /// output:
+    ///   template: "Result: (?<result>.*)"
+    ///   schema:
+    ///     type: object
+    ///     properties:
+    ///       result:
+    ///         type: string
+    /// "#;
     ///
-    /// let tool = ToolDefinition::new("example_tool", "An example tool", input);
+    /// let tool = ToolDefinition::from_yaml(yaml).unwrap();
     /// assert_eq!(tool.name, "example_tool");
     /// ```
-    pub fn new(name: impl Into<String>, description: impl Into<String>, input: ToolInput) -> Self {
-        Self {
-            name: name.into(),
-            title: None,
-            description: description.into(),
-            input,
-            output: None,
-            annotations: None,
-        }
-    }
-
-    /// Set the optional title for this tool definition.
-    pub fn with_title(mut self, title: impl Into<String>) -> Self {
-        self.title = Some(title.into());
-        self
-    }
-
-    /// Set the optional output specification.
-    pub fn with_output(mut self, output: ToolOutput) -> Self {
-        self.output = Some(output);
-        self
-    }
-
-    /// Set annotations for this tool definition.
-    pub fn with_annotations(mut self, annotations: HashMap<String, serde_yaml_ng::Value>) -> Self {
-        self.annotations = Some(annotations);
-        self
+    pub fn from_yaml(yaml: &str) -> Result<Self, serde_yaml_ng::Error> {
+        serde_yaml_ng::from_str(yaml)
     }
 
     /// Convert this mcp-serve tool definition to a pure MCP tool.
@@ -231,7 +234,7 @@ impl ToolDefinition {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput};
+    /// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput, ToolOutput};
     /// use serde_json::json;
     ///
     /// let input = ToolInput {
@@ -239,7 +242,12 @@ impl ToolDefinition {
     ///     schema: json!({"type": "object"}),
     /// };
     ///
-    /// let tool = ToolDefinition::new("test", "Test tool", input);
+    /// let output = ToolOutput {
+    ///     template: "Result: (?<value>.*)".to_string(),
+    ///     schema: json!({"type": "string"}),
+    /// };
+    ///
+    /// let tool = ToolDefinition::new("test", "Test tool", input, output);
     /// let mcp_tool = tool.to_mcp_tool();
     ///
     /// assert_eq!(mcp_tool.name, "test");
@@ -251,94 +259,8 @@ impl ToolDefinition {
             title: self.title.clone(),
             description: self.description.clone(),
             input_schema: self.input.schema.clone(),
-            output_schema: self.output.as_ref().map(|o| o.schema.clone()),
+            output_schema: Some(self.output.schema.clone()),
             annotations: self.annotations.clone(),
-        }
-    }
-}
-
-impl McpTool {
-    /// Create a new MCP tool with required fields.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use mcp_serve::tool_discovery::McpTool;
-    /// use serde_json::json;
-    ///
-    /// let tool = McpTool::new("test", "Test tool", json!({"type": "object"}));
-    /// assert_eq!(tool.name, "test");
-    /// ```
-    pub fn new(
-        name: impl Into<String>,
-        description: impl Into<String>,
-        input_schema: serde_json::Value,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            title: None,
-            description: description.into(),
-            input_schema,
-            output_schema: None,
-            annotations: None,
-        }
-    }
-
-    /// Set the optional title.
-    pub fn with_title(mut self, title: impl Into<String>) -> Self {
-        self.title = Some(title.into());
-        self
-    }
-
-    /// Set the optional output schema.
-    pub fn with_output_schema(mut self, output_schema: serde_json::Value) -> Self {
-        self.output_schema = Some(output_schema);
-        self
-    }
-
-    /// Set annotations.
-    pub fn with_annotations(mut self, annotations: HashMap<String, serde_yaml_ng::Value>) -> Self {
-        self.annotations = Some(annotations);
-        self
-    }
-}
-
-impl ToolInput {
-    /// Create a new tool input specification.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use mcp_serve::tool_discovery::ToolInput;
-    /// use serde_json::json;
-    ///
-    /// let input = ToolInput::new("--name {{name}}", json!({"type": "object"}));
-    /// assert_eq!(input.template, "--name {{name}}");
-    /// ```
-    pub fn new(template: impl Into<String>, schema: serde_json::Value) -> Self {
-        Self {
-            template: template.into(),
-            schema,
-        }
-    }
-}
-
-impl ToolOutput {
-    /// Create a new tool output specification.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// use mcp_serve::tool_discovery::ToolOutput;
-    /// use serde_json::json;
-    ///
-    /// let output = ToolOutput::new("Result: (?<value>.*)", json!({"type": "string"}));
-    /// assert_eq!(output.template, "Result: (?<value>.*)");
-    /// ```
-    pub fn new(template: impl Into<String>, schema: serde_json::Value) -> Self {
-        Self {
-            template: template.into(),
-            schema,
         }
     }
 }
@@ -350,135 +272,155 @@ mod tests {
 
     #[test]
     fn test_tool_definition_creation() {
-        let input_schema = json!({
-            "type": "object",
-            "properties": {
-                "name": {
-                    "type": "string",
-                    "description": "Name parameter"
-                }
-            },
-            "required": ["name"]
-        });
+        let yaml = r#"
+name: test_tool
+description: A test tool
+input:
+  template: "--name {{name}}"
+  schema:
+    type: object
+    properties:
+      name:
+        type: string
+        description: Name parameter
+    required: [name]
+output:
+  template: "Result: (?<result>.*)"
+  schema:
+    type: object
+    properties:
+      result:
+        type: string
+        description: Operation result
+"#;
 
-        let input = ToolInput {
-            template: "--name {{name}}".to_string(),
-            schema: input_schema,
-        };
-
-        let tool = ToolDefinition::new("test_tool", "A test tool", input);
+        let tool = ToolDefinition::from_yaml(yaml).expect("Should parse YAML");
 
         assert_eq!(tool.name, "test_tool");
         assert_eq!(tool.description, "A test tool");
         assert!(tool.title.is_none());
-        assert!(tool.output.is_none());
         assert!(tool.annotations.is_none());
         assert_eq!(tool.input.template, "--name {{name}}");
+        assert_eq!(tool.output.template, "Result: (?<result>.*)");
     }
 
     #[test]
     fn test_tool_definition_with_optional_fields() {
-        let input = ToolInput::new("--test", json!({"type": "object"}));
-        let output = ToolOutput::new("Result: (?<value>.*)", json!({"type": "string"}));
+        let yaml = r#"
+name: test
+title: Test Tool
+description: Test tool
+input:
+  template: "--test"
+  schema:
+    type: object
+output:
+  template: "Result: (?<value>.*)"
+  schema:
+    type: string
+"#;
 
-        let tool = ToolDefinition::new("test", "Test tool", input)
-            .with_title("Test Tool")
-            .with_output(output);
+        let tool = ToolDefinition::from_yaml(yaml).expect("Should parse YAML");
 
         assert_eq!(tool.title, Some("Test Tool".to_string()));
-        assert!(tool.output.is_some());
-        assert_eq!(tool.output.unwrap().template, "Result: (?<value>.*)");
+        assert_eq!(tool.output.template, "Result: (?<value>.*)");
     }
 
     #[test]
     fn test_mcp_tool_creation() {
-        let input_schema = json!({"type": "object"});
-        let tool = McpTool::new("mcp_test", "MCP test tool", input_schema);
+        // Test McpTool via conversion from ToolDefinition
+        let yaml = r#"
+name: mcp_test
+description: MCP test tool
+input:
+  template: "--test"
+  schema:
+    type: object
+output:
+  template: "Result: (?<value>.*)"
+  schema:
+    type: string
+"#;
 
-        assert_eq!(tool.name, "mcp_test");
-        assert_eq!(tool.description, "MCP test tool");
-        assert!(tool.title.is_none());
-        assert!(tool.output_schema.is_none());
+        let tool = ToolDefinition::from_yaml(yaml).expect("Should parse YAML");
+        let mcp_tool = tool.to_mcp_tool();
+
+        assert_eq!(mcp_tool.name, "mcp_test");
+        assert_eq!(mcp_tool.description, "MCP test tool");
+        assert!(mcp_tool.title.is_none());
+        assert!(mcp_tool.output_schema.is_some());
     }
 
     #[test]
     fn test_conversion_to_mcp_tool() {
-        let input_schema = json!({
-            "type": "object",
-            "properties": {
-                "param": {"type": "string"}
-            }
-        });
+        let yaml = r#"
+name: convert_test
+title: Convert Test
+description: Conversion test
+input:
+  template: "--param {{param}}"
+  schema:
+    type: object
+    properties:
+      param:
+        type: string
+output:
+  template: "Result: (?<result>.*)"
+  schema:
+    type: string
+"#;
 
-        let output_schema = json!({"type": "string"});
-
-        let input = ToolInput::new("--param {{param}}", input_schema.clone());
-        let output = ToolOutput::new("Result: (?<result>.*)", output_schema.clone());
-
-        let tool = ToolDefinition::new("convert_test", "Conversion test", input)
-            .with_title("Convert Test")
-            .with_output(output);
-
+        let tool = ToolDefinition::from_yaml(yaml).expect("Should parse YAML");
         let mcp_tool = tool.to_mcp_tool();
 
         assert_eq!(mcp_tool.name, "convert_test");
         assert_eq!(mcp_tool.title, Some("Convert Test".to_string()));
         assert_eq!(mcp_tool.description, "Conversion test");
-        assert_eq!(mcp_tool.input_schema, input_schema);
-        assert_eq!(mcp_tool.output_schema, Some(output_schema));
+        assert_eq!(mcp_tool.input_schema["type"], "object");
+        assert_eq!(mcp_tool.output_schema.unwrap()["type"], "string");
     }
 
     #[test]
     fn test_yaml_serialization_tool_definition() {
-        let input_schema = json!({
-            "type": "object",
-            "properties": {
-                "title": {
-                    "type": "string",
-                    "description": "Ticket title"
-                },
-                "body": {
-                    "type": "string",
-                    "description": "Ticket body"
-                }
-            },
-            "required": ["title", "body"]
-        });
-
-        let output_schema = json!({
-            "type": "object",
-            "properties": {
-                "url": {"type": "string"}
-            }
-        });
-
-        let input = ToolInput::new("--title {{title}} {{body}}", input_schema);
-        let output = ToolOutput::new("Created: (?<url>https://.*)", output_schema);
-
-        let tool = ToolDefinition::new("create_ticket", "Creates a ticket", input)
-            .with_title("Create Ticket")
-            .with_output(output);
-
-        // Test serialization
-        let yaml = serde_yaml_ng::to_string(&tool).expect("Should serialize to YAML");
-        assert!(yaml.contains("name: create_ticket"));
-        assert!(yaml.contains("title: Create Ticket"));
-        assert!(yaml.contains("description: Creates a ticket"));
-        assert!(yaml.contains("input:"));
-        assert!(yaml.contains("template: --title {{title}} {{body}}"));
-        assert!(yaml.contains("schema:"));
-        assert!(yaml.contains("output:"));
+        let yaml = r#"
+name: create_ticket
+title: Create Ticket
+description: Creates a ticket
+input:
+  template: "--title {{title}} {{body}}"
+  schema:
+    type: object
+    properties:
+      title:
+        type: string
+        description: Ticket title
+      body:
+        type: string
+        description: Ticket body
+    required: [title, body]
+output:
+  template: "Created: (?<url>https://.*)"
+  schema:
+    type: object
+    properties:
+      url:
+        type: string
+"#;
 
         // Test deserialization
-        let parsed: ToolDefinition =
-            serde_yaml_ng::from_str(&yaml).expect("Should deserialize from YAML");
+        let tool = ToolDefinition::from_yaml(yaml).expect("Should deserialize from YAML");
 
-        assert_eq!(parsed.name, "create_ticket");
-        assert_eq!(parsed.title, Some("Create Ticket".to_string()));
-        assert_eq!(parsed.description, "Creates a ticket");
-        assert_eq!(parsed.input.template, "--title {{title}} {{body}}");
-        assert!(parsed.input.schema["properties"].is_object());
-        assert!(parsed.output.is_some());
+        assert_eq!(tool.name, "create_ticket");
+        assert_eq!(tool.title, Some("Create Ticket".to_string()));
+        assert_eq!(tool.description, "Creates a ticket");
+        assert_eq!(tool.input.template, "--title {{title}} {{body}}");
+        assert!(tool.input.schema["properties"].is_object());
+        assert_eq!(tool.output.template, "Created: (?<url>https://.*)");
+
+        // Test round-trip serialization
+        let serialized = serde_yaml_ng::to_string(&tool).expect("Should serialize to YAML");
+        let reparsed = ToolDefinition::from_yaml(&serialized).expect("Should deserialize again");
+        assert_eq!(tool, reparsed);
     }
 
     #[test]
@@ -518,7 +460,7 @@ output:
       id: { type: string }
 "#;
 
-        let tool: ToolDefinition = serde_yaml_ng::from_str(yaml).expect("Should parse YAML");
+        let tool = ToolDefinition::from_yaml(yaml).expect("Should parse YAML");
 
         assert_eq!(tool.name, "CreateTicket");
         assert_eq!(tool.title, Some("Create Ticket".to_string()));
@@ -537,31 +479,42 @@ output:
         assert_eq!(tool.input.schema["required"], json!(["title", "body"]));
 
         // Verify output
-        let output = tool.output.expect("Should have output");
-        assert!(output
+        assert!(tool
+            .output
             .template
             .contains("Ticket created: (?<url>https://.*)"));
-        assert!(output.template.contains("ID: (?<id>\\d+)"));
-        assert_eq!(output.schema["type"], "object");
+        assert!(tool.output.template.contains("ID: (?<id>\\d+)"));
+        assert_eq!(tool.output.schema["type"], "object");
     }
 
     #[test]
     fn test_mcp_tool_yaml_serialization() {
-        let input_schema = json!({
-            "type": "object",
-            "properties": {
-                "param": {"type": "string"}
-            }
-        });
+        // Test McpTool serialization via conversion from ToolDefinition
+        let yaml = r#"
+name: mcp_tool
+description: MCP tool
+input:
+  template: "--param {{param}}"
+  schema:
+    type: object
+    properties:
+      param:
+        type: string
+output:
+  template: "Result: (?<value>.*)"
+  schema:
+    type: string
+"#;
 
-        let tool = McpTool::new("mcp_tool", "MCP tool", input_schema);
+        let tool = ToolDefinition::from_yaml(yaml).expect("Should parse YAML");
+        let mcp_tool = tool.to_mcp_tool();
 
-        let yaml = serde_yaml_ng::to_string(&tool).expect("Should serialize");
-        assert!(yaml.contains("name: mcp_tool"));
-        assert!(yaml.contains("input_schema:"));
-        assert!(!yaml.contains("template:")); // Should not have template fields
+        let mcp_yaml = serde_yaml_ng::to_string(&mcp_tool).expect("Should serialize");
+        assert!(mcp_yaml.contains("name: mcp_tool"));
+        assert!(mcp_yaml.contains("input_schema:"));
+        assert!(!mcp_yaml.contains("template:")); // Should not have template fields
 
-        let parsed: McpTool = serde_yaml_ng::from_str(&yaml).expect("Should parse");
+        let parsed: McpTool = serde_yaml_ng::from_str(&mcp_yaml).expect("Should parse");
         assert_eq!(parsed.name, "mcp_tool");
         assert_eq!(parsed.description, "MCP tool");
     }
@@ -569,20 +522,29 @@ output:
     #[test]
     fn test_json_value_schema_flexibility() {
         // Test that we can handle various JSON Schema formats as opaque values
-        let simple_schema = json!({"type": "string"});
-        let complex_schema = json!({
-            "type": "object",
-            "properties": {
-                "name": {"type": "string"},
-                "age": {"type": "integer", "minimum": 0}
-            },
-            "required": ["name"]
-        });
+        let simple_yaml = r#"
+template: "--name {{name}}"
+schema:
+  type: string
+"#;
 
-        let input1 = ToolInput::new("--name {{name}}", simple_schema);
-        let input2 = ToolInput::new("--name {{name}} --age {{age}}", complex_schema);
+        let complex_yaml = r#"
+template: "--name {{name}} --age {{age}}"
+schema:
+  type: object
+  properties:
+    name:
+      type: string
+    age:
+      type: integer
+      minimum: 0
+  required: [name]
+"#;
 
         // Both should serialize and deserialize fine
+        let input1: ToolInput = serde_yaml_ng::from_str(simple_yaml).unwrap();
+        let input2: ToolInput = serde_yaml_ng::from_str(complex_yaml).unwrap();
+
         let yaml1 = serde_yaml_ng::to_string(&input1).unwrap();
         let yaml2 = serde_yaml_ng::to_string(&input2).unwrap();
 
@@ -601,6 +563,10 @@ input:
     type: object
     properties:
       invalid: [unclosed
+output:
+  template: "Result: (?<result>.*)"
+  schema:
+    type: string
 "#;
 
         let result: Result<ToolDefinition, _> = serde_yaml_ng::from_str(malformed_yaml);
