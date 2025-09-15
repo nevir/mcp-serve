@@ -54,16 +54,9 @@ pub enum ScanError {
 /// use std::path::Path;
 ///
 /// let mut scanner = DirectoryScanner::new();
-/// // Use examples/tools if it exists, otherwise use current directory
-/// let tools_dir = if Path::new("examples/tools").exists() {
-///     Path::new("examples/tools")
-/// } else {
-///     Path::new(".")
-/// };
-/// let tools = scanner.scan_directory(tools_dir).unwrap();
-///
-/// for tool in tools {
-///     println!("Found tool: {}", tool.executable_path.display());
+/// match scanner.scan_directory(Path::new(".")) {
+///     Ok(tools) => println!("Found {} tools", tools.len()),
+///     Err(e) => eprintln!("Scan failed: {}", e),
 /// }
 /// ```
 pub struct DirectoryScanner {
@@ -79,9 +72,15 @@ impl DirectoryScanner {
 
     /// Scan a directory for discoverable tools.
     ///
-    /// Returns all discovered tools and collects any permission errors
-    /// encountered during scanning. Permission errors are stored internally
-    /// and can be retrieved with `take_errors()`.
+    /// Returns all discovered tools and collects any non-fatal errors
+    /// encountered during scanning. Non-fatal errors (like individual file
+    /// permission issues) are stored internally and can be retrieved with `take_errors()`.
+    ///
+    /// # Error Handling
+    ///
+    /// - **Fatal errors** (e.g., directory doesn't exist or can't be read) return `Err`
+    /// - **Non-fatal errors** (e.g., individual file permission issues) are collected
+    ///   internally and scanning continues
     ///
     /// # Arguments
     ///
@@ -89,7 +88,7 @@ impl DirectoryScanner {
     ///
     /// # Returns
     ///
-    /// A vector of discovered tools, or an error if the directory
+    /// A vector of discovered tools, or a fatal error if the directory
     /// cannot be read or traversed.
     ///
     /// # Examples
@@ -151,17 +150,7 @@ impl DirectoryScanner {
     fn check_executable(&mut self, path: &Path) -> Option<DiscoveredTool> {
         // Use faccess for cross-platform executable detection
         // Note: This is treated as an optimization hint, not a security decision
-        let is_executable = match path.executable() {
-            true => true,
-            false => {
-                // On some systems, files might be executable but faccess might
-                // not detect it perfectly. We could add fallback logic here
-                // based on file extension for Windows (.exe, .bat, .cmd) etc.
-                self.check_executable_by_extension(path)
-            }
-        };
-
-        if !is_executable {
+        if !path.executable() {
             return None;
         }
 
@@ -171,20 +160,6 @@ impl DirectoryScanner {
             executable_path: path.to_path_buf(),
             metadata_source,
         })
-    }
-
-    /// Check if file might be executable based on file extension.
-    ///
-    /// This serves as a fallback for systems where `faccess` might not
-    /// perfectly detect executables (e.g., Windows executable extensions).
-    fn check_executable_by_extension(&self, path: &Path) -> bool {
-        if let Some(extension) = path.extension() {
-            let ext = extension.to_string_lossy().to_lowercase();
-            matches!(ext.as_str(), "exe" | "bat" | "cmd" | "ps1" | "sh")
-        } else {
-            // For extensionless files, check if the file is actually executable using faccess
-            path.executable()
-        }
     }
 
     /// Find the metadata source for a given executable.
