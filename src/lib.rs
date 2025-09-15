@@ -5,4 +5,3 @@
 
 pub mod definitions;
 pub mod scanner;
-pub mod tool_discovery;
