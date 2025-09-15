@@ -1,8 +1,8 @@
-//! Tool discovery system for MCP (Model Context Protocol) servers.
+//! Tool definition data structures for MCP (Model Context Protocol) servers.
 //!
-//! This module provides data structures and functionality for discovering,
-//! parsing, and validating tool definitions from executable files and
-//! associated metadata sources.
+//! This module contains the core data structures that represent tool definitions
+//! and their metadata, including both pure MCP protocol structures and mcp-serve's
+//! custom YAML format with template-based execution.
 //!
 //! The design separates pure MCP protocol structures from mcp-serve's custom
 //! YAML format that includes templates for command-line argument generation
@@ -27,7 +27,7 @@ use std::collections::HashMap;
 /// # Examples
 ///
 /// ```
-/// use mcp_serve::tool_discovery::McpTool;
+/// use mcp_serve::definitions::McpTool;
 /// use serde_json::json;
 ///
 /// let tool = McpTool {
@@ -89,35 +89,32 @@ pub struct McpTool {
 /// # Examples
 ///
 /// ```
-/// use serde_yaml_ng;
-/// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput, ToolOutput};
-/// use serde_json::json;
+/// use mcp_serve::definitions::ToolDefinition;
 ///
-/// // Both input and output are now required
-/// let input = ToolInput::new(
-///     "--title {{title}} {{body}}",
-///     json!({
-///         "type": "object",
-///         "properties": {
-///             "title": {"type": "string"},
-///             "body": {"type": "string"}
-///         },
-///         "required": ["title", "body"]
-///     })
-/// );
+/// let yaml = r#"
+/// name: create_ticket
+/// title: Create Ticket
+/// description: Creates a new feature ticket
+/// input:
+///   template: "--title {{title}} {{body}}"
+///   schema:
+///     type: object
+///     properties:
+///       title:
+///         type: string
+///       body:
+///         type: string
+///     required: ["title", "body"]
+/// output:
+///   template: "Created: (?<url>https://.*)"
+///   schema:
+///     type: object
+///     properties:
+///       url:
+///         type: string
+/// "#;
 ///
-/// let output = ToolOutput::new(
-///     "Created: (?<url>https://.*)",
-///     json!({
-///         "type": "object",
-///         "properties": {
-///             "url": {"type": "string"}
-///         }
-///     })
-/// );
-///
-/// let tool = ToolDefinition::new("create_ticket", "Creates a new feature ticket", input, output)
-///     .with_title("Create Ticket");
+/// let tool = ToolDefinition::from_yaml(yaml).unwrap();
 /// assert_eq!(tool.name, "create_ticket");
 /// ```
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -178,7 +175,8 @@ pub struct ToolOutput {
     /// # Examples
     ///
     /// ```text
-    /// Ticket created: (?<url>https://.*)\nID: (?<id>\d+)
+    /// Ticket created: (?<url>https://.*)
+    /// ID: (?<id>\d+)
     /// ```
     pub template: String,
 
@@ -198,7 +196,7 @@ impl ToolDefinition {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::ToolDefinition;
+    /// use mcp_serve::definitions::ToolDefinition;
     ///
     /// let yaml = r#"
     /// name: example_tool
@@ -234,7 +232,7 @@ impl ToolDefinition {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::{ToolDefinition, ToolInput, ToolOutput};
+    /// use mcp_serve::definitions::{ToolDefinition, ToolInput, ToolOutput};
     /// use serde_json::json;
     ///
     /// let input = ToolInput {
@@ -247,7 +245,14 @@ impl ToolDefinition {
     ///     schema: json!({"type": "string"}),
     /// };
     ///
-    /// let tool = ToolDefinition::new("test", "Test tool", input, output);
+    /// let tool = ToolDefinition {
+    ///     name: "test".to_string(),
+    ///     title: None,
+    ///     description: "Test tool".to_string(),
+    ///     input,
+    ///     output,
+    ///     annotations: None,
+    /// };
     /// let mcp_tool = tool.to_mcp_tool();
     ///
     /// assert_eq!(mcp_tool.name, "test");

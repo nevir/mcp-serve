@@ -1,0 +1,38 @@
+#!/bin/bash
+# ---
+# name: CreateTicket
+# title: Create Ticket
+# description: Creates a new feature ticket in the project tracking system.
+# input:
+#   template: '--title {{title}} [--parent {{parent_id}}] [--label {{label}}...] {{body}}'
+#   schema:
+#     type: object
+#     properties:
+#       title:
+#         type: string
+#         description: "The title of the feature ticket."
+#       body:
+#         type: string
+#         description: "A detailed description of the feature in markdown."
+#       parent_id:
+#         type: string
+#         description: "Optional: The ID of the parent ticket."
+#       label:
+#         type: array
+#         items: { type: string }
+#         description: "Optional: A list of labels to apply."
+#     required: [ "title", "body" ]
+# output:
+#   template: |-
+#     Ticket created: (?<url>https://.*)
+#     ID: (?<id>\d+)
+#   schema:
+#     type: object
+#     properties:
+#       url: { type: string }
+#       id: { type: string }
+# ---
+
+# This is an example tool that demonstrates embedded metadata
+echo "Ticket created: https://jira.example.com/T-$RANDOM"
+echo "ID: $RANDOM"
