@@ -3,16 +3,16 @@
 //! This module provides functionality for discovering, parsing, and validating
 //! tool definitions from executable files and associated metadata sources.
 //!
-//! The module is organized into separate concerns:
-//! - [`definitions`]: Tool definition data structures (MCP protocol and mcp-serve YAML format)
-//! - [`scanner`]: Directory scanning and executable discovery functionality
+//! The functionality is organized into top-level modules:
+//! - [`crate::definitions`]: Tool definition data structures (MCP protocol and mcp-serve YAML format)
+//! - [`crate::scanner`]: Directory scanning and executable discovery functionality
 //!
 //! # Examples
 //!
 //! ## Discovering tools in a directory
 //!
 //! ```
-//! use mcp_serve::tool_discovery::scanner::DirectoryScanner;
+//! use mcp_serve::scanner::DirectoryScanner;
 //! use std::path::Path;
 //!
 //! let mut scanner = DirectoryScanner::new();
@@ -26,7 +26,7 @@
 //! ## Parsing tool definitions from YAML
 //!
 //! ```
-//! use mcp_serve::tool_discovery::definitions::ToolDefinition;
+//! use mcp_serve::definitions::ToolDefinition;
 //!
 //! let yaml = r#"
 //! name: example_tool
@@ -51,9 +51,5 @@
 //! let mcp_tool = tool.to_mcp_tool();
 //! ```
 
-pub mod definitions;
-pub mod scanner;
-
-// Re-export commonly used types for convenience
-pub use definitions::{McpTool, ToolDefinition, ToolInput, ToolOutput};
-pub use scanner::{DirectoryScanner, DiscoveredTool, MetadataSource, ScanError};
+// Note: Tool discovery functionality has been moved to top-level modules.
+// Import directly from mcp_serve::definitions and mcp_serve::scanner instead of this module.

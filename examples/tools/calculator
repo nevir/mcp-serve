@@ -11,9 +11,9 @@ def main():
     parser.add_argument('--operation', choices=['add', 'subtract', 'multiply', 'divide'], required=True)
     parser.add_argument('--a', type=float, required=True, help='First number')
     parser.add_argument('--b', type=float, required=True, help='Second number')
-    
+
     args = parser.parse_args()
-    
+
     if args.operation == 'add':
         result = args.a + args.b
     elif args.operation == 'subtract':
@@ -25,7 +25,7 @@ def main():
             print("Error: Division by zero", file=sys.stderr)
             sys.exit(1)
         result = args.a / args.b
-    
+
     print(f"Result: {result}")
 
 if __name__ == '__main__':

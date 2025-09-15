@@ -50,7 +50,7 @@ pub enum ScanError {
 /// # Examples
 ///
 /// ```
-/// use mcp_serve::tool_discovery::scanner::DirectoryScanner;
+/// use mcp_serve::scanner::DirectoryScanner;
 /// use std::path::Path;
 ///
 /// let mut scanner = DirectoryScanner::new();
@@ -95,7 +95,7 @@ impl DirectoryScanner {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::scanner::DirectoryScanner;
+    /// use mcp_serve::scanner::DirectoryScanner;
     /// use std::path::Path;
     ///
     /// let mut scanner = DirectoryScanner::new();

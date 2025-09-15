@@ -27,7 +27,7 @@ use std::collections::HashMap;
 /// # Examples
 ///
 /// ```
-/// use mcp_serve::tool_discovery::definitions::McpTool;
+/// use mcp_serve::definitions::McpTool;
 /// use serde_json::json;
 ///
 /// let tool = McpTool {
@@ -89,7 +89,7 @@ pub struct McpTool {
 /// # Examples
 ///
 /// ```
-/// use mcp_serve::tool_discovery::definitions::ToolDefinition;
+/// use mcp_serve::definitions::ToolDefinition;
 ///
 /// let yaml = r#"
 /// name: create_ticket
@@ -196,7 +196,7 @@ impl ToolDefinition {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::definitions::ToolDefinition;
+    /// use mcp_serve::definitions::ToolDefinition;
     ///
     /// let yaml = r#"
     /// name: example_tool
@@ -232,7 +232,7 @@ impl ToolDefinition {
     /// # Examples
     ///
     /// ```
-    /// use mcp_serve::tool_discovery::definitions::{ToolDefinition, ToolInput, ToolOutput};
+    /// use mcp_serve::definitions::{ToolDefinition, ToolInput, ToolOutput};
     /// use serde_json::json;
     ///
     /// let input = ToolInput {

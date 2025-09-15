@@ -3,7 +3,7 @@
 //! This test demonstrates how the DirectoryScanner works with real tool files
 //! in a practical scenario.
 
-use mcp_serve::tool_discovery::{DirectoryScanner, MetadataSource};
+use mcp_serve::scanner::{DirectoryScanner, MetadataSource};
 use std::path::Path;
 
 #[test]

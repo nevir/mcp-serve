@@ -35,7 +35,7 @@ if [ -f "$1" ]; then
     size=$(stat -c%s "$1" 2>/dev/null || stat -f%z "$1" 2>/dev/null || echo "unknown")
     filetype=$(file -b "$1" 2>/dev/null || echo "unknown")
     perms=$(stat -c%A "$1" 2>/dev/null || stat -f%Sp "$1" 2>/dev/null || echo "unknown")
-    
+
     echo "Size: $size bytes"
     echo "Type: $filetype"
     echo "Permissions: $perms"

@@ -3,4 +3,6 @@
 //! This crate provides the core functionality for discovering, parsing, and serving
 //! tools via the Model Context Protocol.
 
+pub mod definitions;
+pub mod scanner;
 pub mod tool_discovery;
