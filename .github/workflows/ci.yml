@@ -127,7 +127,7 @@ jobs:
           fetch-depth: 0
 
       - name: Download all binary artifacts
-        uses: actions/download-artifact@87c55149d96e628cc2ef7e6fc2aab372015aec85 # v4.1.1
+        uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53 # v4.1.1
         with:
           pattern: binary-*
           path: artifacts
